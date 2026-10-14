@@ -16,7 +16,14 @@
 
 ## 本地启动
 
-安装 Node.js 22.9 或以上版本。在仓库根目录执行：
+安装 Node.js 22.9 或以上版本。首次获取主仓库可使用下面的 PowerShell 命令。队员准备提交功能时仍按 [Fork / PR 协作规范](CONTRIBUTING.md) 建立自己的副本。
+
+```powershell
+git clone https://github.com/tw1l1ghtcc/datastructure-agent.git
+Set-Location datastructure-agent
+```
+
+随后在仓库根目录执行：
 
 ```powershell
 npm run check
@@ -33,6 +40,16 @@ npm start
 ```
 
 本次不需要模型密钥就能启动骨架。不要把 `.env` 提交到仓库。
+
+启动后，另开一个 PowerShell 窗口检查服务：
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:3000/api/health
+```
+
+当前预期为 `ok=true`、`stage=scaffold`、`modelCallsEnabled=false`。浏览器应能看到各成员区域的占位说明；业务接口仍返回 501。检查结束后在运行 `npm start` 的窗口按 Ctrl+C 停止服务。模型配置项只是预留，当前代码没有读取它们发起模型调用。
+
+2026-10-14 的本地核验通过静态检查、页面及健康接口检查，详见 [接手核验记录](docs/architecture/takeover-check.md)。这次启动核验由 Codex 在本地副本完成；另一位队员从干净副本启动的验收仍待进行。
 
 ## 本次第一次作业
 
@@ -73,6 +90,8 @@ scripts/               仓库静态检查
 
 ## 材料入口
 
+- [接口对齐清单](docs/architecture/contract-alignment.md)：负责人、待确认事项和确认依据。
+- [集成与验收清单](docs/team/integration-checklist.md)：17日、19日联调及22日冻结检查。
 - [日程](docs/team/schedule.md)：10月22日完成，23日至24日答辩前修复、复测与演练。
 - [需求文档模板](docs/product/requirements.md)：成员09完善。
 - [访谈与试用](docs/research/README.md)：成员07组织。
