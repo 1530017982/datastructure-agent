@@ -1,0 +1,27 @@
+name: 成员开发任务
+description: 根据个人任务单认领一个可验收任务
+title: "[Mxx] "
+body:
+  - type: input
+    id: owner
+    attributes:
+      label: 成员编号与 GitHub 用户名
+    validations:
+      required: true
+  - type: textarea
+    id: implementation
+    attributes:
+      label: 具体实现与负责路径
+      description: 写清做什么、改哪些文件、依赖谁的接口。
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收步骤与预期结果
+    validations:
+      required: true
+  - type: input
+    id: deadline
+    attributes:
+      label: 预计 PR 日期

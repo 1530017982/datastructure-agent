@@ -1,0 +1,9 @@
+module,unit,knowledge_status,exercise_status,animation_status,source_status,owner
+绪论,待按教材和官方大纲拆分,planned,planned,not_required,pending,M06+M09
+线性表,待拆分含链表插入删除,planned,planned,planned,pending,M06+M09
+栈队列数组,待拆分,planned,planned,to_review,pending,M06+M09
+串,待拆分含KMP,planned,planned,planned,pending,M06+M09
+树与二叉树,待拆分含遍历,planned,planned,planned,pending,M06+M09
+图,待拆分含BFS-DFS-Dijkstra-Floyd,planned,planned,planned,pending,M06+M09
+查找,待拆分含二分查找,planned,planned,planned,pending,M06+M09
+排序,待拆分含快速归并排序,planned,planned,planned,pending,M06+M09

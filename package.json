@@ -1,0 +1,13 @@
+{
+  "name": "datastructure-agent",
+  "version": "0.0.1",
+  "private": true,
+  "description": "数据结构学习助手：十人协作骨架，业务功能待实现",
+  "type": "module",
+  "engines": { "node": ">=22.9.0" },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env backend/src/server.js",
+    "dev": "node --watch --env-file-if-exists=.env backend/src/server.js",
+    "check": "node scripts/check.mjs"
+  }
+}

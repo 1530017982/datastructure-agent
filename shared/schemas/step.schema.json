@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Binary search step v1",
+  "type": "object",
+  "required": ["schemaVersion", "algorithm", "stepIndex", "event", "sourceVersion", "lineId", "array", "target", "variables", "done", "result"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "algorithm": { "const": "binary-search" },
+    "stepIndex": { "type": "integer", "minimum": 0 },
+    "event": { "enum": ["init", "probe", "move-left", "move-right", "found", "not-found"] },
+    "sourceVersion": { "type": "string", "minLength": 1 },
+    "lineId": { "type": "string", "minLength": 1 },
+    "array": { "type": "array", "items": { "type": "integer" } },
+    "target": { "type": "integer" },
+    "variables": {
+      "type": "object",
+      "required": ["left", "right", "mid"],
+      "properties": {
+        "left": { "type": "integer", "minimum": 0 },
+        "right": { "type": "integer", "minimum": -1 },
+        "mid": { "type": ["integer", "null"], "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "done": { "type": "boolean" },
+    "result": { "type": ["integer", "null"], "minimum": -1 }
+  },
+  "additionalProperties": false
+}
