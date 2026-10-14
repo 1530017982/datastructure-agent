@@ -2,6 +2,8 @@
 
 同源前后端；`Content-Type: application/json`。当前只有GET `/api/health`返回200；下面业务接口全部返回501。成员04/05实现后更新本页状态。
 
+现有算法口径继续有效，但成功响应的完整结构、输入/保存限制、题目交互和模型错误细节尚未全部冻结。具体待确认项及负责人见 [接口对齐清单](contract-alignment.md)。本轮仅整理待确认项，没有变更业务接口或宣布跨模块确认完成。
+
 | 方法与路径 | 输入/用途 | 计划返回 | 主责 |
 |---|---|---|---|
 | POST /api/algorithms/binary-search/runs | `{array:[1,3,5,7,9],target:7}` | runId、algorithm、sourceVersion、sourceLines、steps、result | 04 |
