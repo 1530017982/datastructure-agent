@@ -6,7 +6,7 @@
 
 | 成员 | 任务 | 主责路径 | 状态 | PR/成果链接 | 阻塞或下一步 | 验收证据 |
 |---|---|---|---|---|---|---|
-| 01 | 统筹与集成 | docs/team、docs/architecture、shared/schemas、scripts、根配置协调 | 开发中：统筹文档；业务集成未开始 | [接口对齐清单](../architecture/contract-alignment.md)、[集成清单](integration-checklist.md)；本轮 PR 待创建 | 收集真实登记、负责人确认及模块 PR；不代填身份 | [本地核验](../architecture/takeover-check.md)；尚未完成全流程验收 |
+| 01 | 统筹与集成 | docs/team、docs/architecture、shared/schemas、scripts、根配置协调 | 开发中：首批统筹文档待审核；业务集成未开始 | [文档PR #2](https://github.com/tw1l1ghtcc/datastructure-agent/pull/2)、[接口对齐清单](../architecture/contract-alignment.md)、[集成清单](integration-checklist.md) | 收集真实登记、负责人确认及模块 PR；不代填身份 | [本地核验](../architecture/takeover-check.md)；尚未完成全流程验收 |
 | 02 | 工作台 | frontend/index.html、src/app.js、styles、features/workbench、services | 未开始（仓库） | 待提交 | 确认输入、响应、行映射与步骤通知契约 | 待真实页面操作证据 |
 | 03 | 动画与播放 | frontend/src/features/visualization、playback | 未开始（仓库） | 待提交 | 与02对齐模块接口，接04真实轨迹 | 待播放、回看及计时器检查 |
 | 04 | 引擎与接口 | backend/src/algorithms、runs、routes、server.js、shared/algorithms | 未开始（仓库） | 待提交 | 提供限制、源码行映射及实际轨迹；与01和消费者确认 | 待08独立预期核验 |

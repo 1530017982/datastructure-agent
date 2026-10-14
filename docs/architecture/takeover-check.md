@@ -9,7 +9,7 @@
 - 前一轮已克隆最新仓库，本轮编辑前工作区干净；远程分支核验仅见main。PR/Issue列表核验为空，本轮创建的文档PR不计入此前状态。
 - `main.protected=true`；详细保护端点返回403，细项只能引用交接记录，未宣称本轮全部复核。
 - 本地无CI工作流文件；GitHub workflow runs列表为0。`npm run check`是本地检查。
-- 本轮命令行fetch遇到代理连接及DNS限制；使用GitHub连接器核对HEAD，与现有本地HEAD一致，不拿旧副本覆盖新提交。
+- 本轮命令行fetch首次遇到代理连接及DNS限制；先使用GitHub连接器核对HEAD，再通过工具允许的网络访问成功fetch并确认origin/main仍为上述基线，不拿旧副本覆盖新提交。
 
 ## 本地检查
 
@@ -45,5 +45,6 @@ HTTP核验通过加载现有 `backend/src/server.js`、设置 `HOST=127.0.0.1`/`
 - [任务看板](../team/progress.md)：主责路径、可见成果、阻塞及证据；线下进度和身份待队员真实补充。
 - [集成清单](../team/integration-checklist.md)：17日、19日集成、21日全流程及22日冻结的待执行验收。
 - CONTRIBUTING修正过时保护说明；README补充获取仓库、健康检查和停止服务的步骤。
+- [文档PR #2](https://github.com/tw1l1ghtcc/datastructure-agent/pull/2) 已从 `codex/m01-integration-readiness` 提交到main，等待审核，尚未合并。8份UTF-8文档及31个相对链接检查通过，`git diff --check`通过。
 
 成员登记仍待真实资料；负责人确认、另一位队员从干净副本启动、模块PR、业务联调、核验内容、真实访谈和三案例均未完成。01协调收集并持续更新，不以本轮文档PR替代这些交付。
