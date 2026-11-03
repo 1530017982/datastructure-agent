@@ -8,13 +8,11 @@
 
 ## 从哪里开始
 
-1. 先读 [十人分工总表](docs/team/assignments.md)，确认自己对应成员编号。
-2. 在 [个人任务单](docs/team/tasks/) 中找到任务、路径、日期和验收条件。
-3. 对照 [交付样子与验收示例](docs/team/plan-a-output-spec.md) 确认自己要做成什么样。
-4. 按 [Fork / PR 协作规范](CONTRIBUTING.md) 操作。
-5. 开发前读 [接口约定](docs/architecture/api-contract.md) 与 [执行状态约定](docs/architecture/trace-contract.md)。
+1. 在 [最终任务登记表](docs/team/final/roster.md) 确认本轮编号和负责的任务，再查看 [最终任务清单](docs/team/final/README.md) 中的积分和验收条件。
+2. 按 [Fork / PR 协作规范](CONTRIBUTING.md) 操作。
+3. 开发前读 [接口约定](docs/architecture/api-contract.md) 与 [执行状态约定](docs/architecture/trace-contract.md)。
 
-真实姓名、学号和 GitHub 用户名由团队在 [成员登记表](docs/team/roster.md) 填写，目前没有将任务分配给不存在的账号。更新进度用 [任务看板](docs/team/progress.md)。
+成员编号见 [原成员登记表](docs/team/roster.md)，实际交付记录在 [最终进度表](docs/team/final/progress.md)。第一次任务的原分工、日程及验收记录见 [第一次任务归档](docs/team/phase-1/README.md)。
 
 ## 本地启动
 
@@ -131,8 +129,7 @@ scripts/               仓库静态检查
 ## 材料入口
 
 - [接口对齐清单](docs/architecture/contract-alignment.md)：负责人、待确认事项和确认依据。
-- [集成与验收清单](docs/team/integration-checklist.md)：17日、19日联调及22日冻结检查。
-- [日程](docs/team/schedule.md)：10月22日完成，23日至24日答辩前修复、复测与演练。
+- [第一次任务归档](docs/team/phase-1/README.md)：原日程、集成验收清单与历史进度。
 - [需求分析v0.9](docs/product/requirements.md)：09已交可审阅版，真实调研、课程规范及跨成员确认仍待补。
 - [原型、截图与标志](docs/prototype/README.md)、[思维导图与领域模型](docs/architecture/diagrams/README.md)：09设计成果，10可引用并保留设计标签。
 - [覆盖规划](docs/product/coverage-plan.md)：40项逐项规划，待06/相关成员复核，不代表全部内容或动画已完成。
