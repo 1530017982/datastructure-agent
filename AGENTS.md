@@ -1,7 +1,7 @@
 # 项目协作约定
 
 - 技术栈：原生 HTML/CSS/JavaScript 前端，Node.js 后端；不引入 Vue、React、TypeScript 或 Python。
-- 当前实现与验收边界见[当前状态](docs/architecture/current-status.md)和[任务看板](docs/team/progress.md)。二分查找和冒泡排序共用工作台、步骤问答与练习；本机自定义数组代码使用 Open Watcom。旧原型和日期检查保留历史基线，成员主责仍按任务单执行。
+- 当前实现与验收边界见[当前状态](docs/architecture/current-status.md)。后续成员主责与交付按[最终任务清单](docs/team/final/README.md)执行。二分查找和冒泡排序共用工作台、步骤问答与练习；本机自定义数组代码使用 Open Watcom。旧原型和日期检查保留历史基线。
 - 改公共接口、执行状态、启动入口前，与成员 01 和受影响模块负责人对齐；在 PR 中同步文档和消费者。
 - 算法轨迹由确定程序产生；不得由语言模型生成权威执行状态或直接决定客观题评分。
 - C/C++ 展示代码与 JavaScript 引擎按同一版本逐步对应；必须核验边界用例。

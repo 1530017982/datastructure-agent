@@ -1,6 +1,6 @@
 # 当前项目状态
 
-更新：2026-11-03。核对基线为 `main` 的 `8a909c2`，包含已合并的 [PR #42](https://github.com/tw1l1ghtcc/datastructure-agent/pull/42)。成员职责见[分工表](../team/assignments.md)，待办见[任务看板](../team/progress.md)。
+更新：2026-11-03。核对基线为 `main` 的 `8a909c2`，包含已合并的 [PR #42](https://github.com/tw1l1ghtcc/datastructure-agent/pull/42)。后续分工见[最终任务清单](../team/final/README.md)，历史进度见[第一次任务归档](../team/phase-1/README.md)。
 
 ## 已接入的程序
 
