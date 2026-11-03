@@ -13,4 +13,6 @@ Thumbs.db
 .vs/
 data/private/
 artifacts/local/
+# Keep local Open Watcom build and installation files out of Git.
+# Only the reviewed runtime files are already tracked in this directory.
 third_party/open-watcom/

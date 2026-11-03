@@ -1,0 +1,3 @@
+# Preserve the original toolchain bytes and upstream whitespace.
+/third_party/open-watcom/builder/** -text -whitespace
+/third_party/open-watcom/owcpp/** -text -whitespace

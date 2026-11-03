@@ -1,6 +1,6 @@
 # 模块结构与依赖
 
-技术方案为原生 HTML/CSS/JavaScript 和 Node.js。内置算法与练习可直接运行，步骤问答可配置 DeepSeek。Windows 本机自定义代码另需 Open Watcom。浏览器回归需要 Playwright 和浏览器。
+技术方案为原生 HTML/CSS/JavaScript 和 Node.js。内置算法与练习可直接运行，步骤问答可配置 DeepSeek。Windows x64 本机自定义代码使用[随仓库提供的 Open Watcom](../../third_party/open-watcom/README.md)。浏览器回归需要 Playwright 和浏览器。
 
 | 目录 | 职责 | 负责人 |
 |---|---|---|
