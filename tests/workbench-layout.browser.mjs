@@ -46,8 +46,8 @@ try {
  const before=await page.locator('#tutor-window').boundingBox(),handle=await page.locator('[data-tutor-drag]').boundingBox();
  await page.mouse.move(handle.x+80,handle.y+25);await page.mouse.down();await page.mouse.move(handle.x+20,handle.y+40,{steps:4});await page.mouse.up();
  const after=await page.locator('#tutor-window').boundingBox();assert.ok(after.x<before.x-20);
- await page.locator('.nav-item[data-page-link="knowledge"]').click();await page.waitForFunction(()=>document.querySelector('#knowledge-status').textContent.includes('10'));
- assert.equal(await page.locator('#knowledge-cards details').count(),10);await page.locator('#knowledge-cards summary').first().click();assert.match(await page.locator('#knowledge-cards details').first().innerText(),/项目自编/);
+ await page.locator('.nav-item[data-page-link="knowledge"]').click();
+ assert.equal(await page.inputValue('#note-unit'),'');assert.equal(await page.locator('#note-content').isVisible(),false);
  await page.locator('.nav-item[data-page-link="workbench"]').click();await page.click('#tutor-toggle');await page.keyboard.press('Escape');assert.equal(await page.locator('#tutor-window').isVisible(),false);
  passed.push('tall floating tutor closes on outside click while keeping controls usable, stays open on inside clicks, preserves draft/history and pending answers, opens without pausing, pauses on send, retains original step, drags, uses separate knowledge page and closes with Escape');
 

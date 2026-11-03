@@ -12,22 +12,34 @@
 [data-page-view]{min-width:0}
 [data-page-view]>header h1:focus{outline:none}
 .page-link{display:inline-block;border:1px solid var(--border);border-radius:7px;padding:8px 13px;background:#fff;font-size:12px;white-space:nowrap}
-.knowledge-intro{display:flex;align-items:center;gap:14px;padding:17px 20px;background:#fff;border:1px solid var(--border);border-radius:10px;margin-bottom:16px}
-.knowledge-intro p{font-size:12px;color:var(--muted)}
-#knowledge-status{font-size:12px;margin:14px 0;color:var(--muted)}
-.knowledge-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
-.knowledge-grid details{background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px 20px;min-width:0;font-size:13px}
-.knowledge-grid details[open]{border-color:#c4b8ed}
-.knowledge-grid summary{cursor:pointer;font-size:14px;font-weight:600;color:#3e335b;line-height:1.7}
-.knowledge-grid details p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.9;margin:15px 0;color:#4f5f78}
-.knowledge-grid small{font-size:10px;color:var(--muted);overflow-wrap:anywhere}
-#knowledge-retry{margin-top:12px}
+.note-picker{width:min(100%,320px);margin-bottom:18px}
+.note-picker select{width:100%;font-size:14px}
+#note-status{font-size:13px;color:var(--muted)}
+.note-content{
+  max-width:900px;margin:0 auto;padding:clamp(16px,4vw,42px);
+  background:#fff;border:1px solid var(--border);border-radius:12px;
+  line-height:1.85;overflow-wrap:anywhere
+}
+.note-content h2{font-size:27px}
+.note-content h3{font-size:21px;margin-top:2em;scroll-margin-top:20px}
+.note-content h4{font-size:17px;margin-top:1.6em}
+.note-content [id]{scroll-margin-top:20px}
+.note-content .page-link,.course-topics .course-note-link{color:var(--accent);background:var(--lavender)}
+.course-topics .course-note-link{padding:2px 8px;border-radius:5px;white-space:nowrap}
+.note-content p,.note-content ul,.note-content ol{margin:.8em 0}
+.note-content blockquote{margin:1em 0;padding:4px 14px;border-left:3px solid var(--accent);background:var(--lavender)}
+.note-content table{display:block;overflow-x:auto;max-width:100%;border-collapse:collapse;margin:1em 0}
+.note-content th,.note-content td{border:1px solid var(--border);padding:8px;text-align:left;min-width:7em}
+.note-content th{background:var(--lavender)}
+.note-content pre,.note-formula{max-width:100%;overflow-x:auto;padding:12px;background:#f7f8fc;border-radius:7px}
+.note-content code{font-family:Consolas,monospace}
+.note-content a{text-decoration:underline;text-underline-offset:3px}
 #practice .exercise-region,#records .records-panel{max-width:1050px;margin:0 auto}
 #practice .learning-layout{display:block;margin-top:15px}
 #records-mount h3{font-size:17px;margin:0 0 15px}
 #records .records-panel{min-height:280px}
 #records #learning-records{max-height:none;overflow:visible}
-@media(max-width:680px){.knowledge-grid{grid-template-columns:minmax(0,1fr)}.knowledge-intro{align-items:flex-start;flex-direction:column;gap:10px}.page-link{font-size:10px;padding:7px 9px}}
+@media(max-width:680px){.page-link{font-size:10px;padding:7px 9px}}
 
 .tutor-ball[aria-expanded="true"]{z-index:43}
 
