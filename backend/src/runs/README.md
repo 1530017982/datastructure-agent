@@ -1,5 +1,5 @@
 # 运行状态（成员04）
 
-store.js 已实现服务端 runId、createdAt 和内存Map保存；routes/runs.js 提供完整run及单步查询。每个run输入固定，输入变化需新建。
+`store.js` 为二分查找、冒泡排序和本机自定义代码保存服务端运行，分配 `runId` 和 `createdAt`。`routes/runs.js` 提供完整运行和单步查询。输入变化时创建新运行。
 
-TTL为1小时，每60秒清理，查询过期run也删除；定时器unref。服务重启丢失记录，没有持久化或容量上限策略。Agent只读状态工具尚待05接入；接口错误及字段见[API契约](../../../docs/architecture/api-contract.md)。
+运行保留 1 小时，每 60 秒清理一次，查询时也检查是否过期。服务重启后运行清空。步骤问答读取内置算法运行中的当前和上一步快照。接口错误及字段见[API 契约](../../../docs/architecture/api-contract.md)。

@@ -18,6 +18,8 @@ npm run check:content
 | backend-acceptance.mjs | 由原pr10-full-audit.mjs整理；人工oracle、882组输入轨迹不变量、源码映射、真实HTTP、题库判分、TTL和关闭清理，共26组；按当前接口运行，失败返回非零退出码 |
 | playback-seek.test.mjs | 时间轴停止原计时器、复用原快照、只广播一次、非法跳步和销毁隔离 |
 | workbench-input.test.mjs | 输入边界及完整run/源码映射校验 |
+| bubble-sort-learning.test.mjs | 冒泡排序人工预期、问答快照与十道练习题格式 |
+| custom-code.test.mjs | 本机请求限制、受限语法、实际 C/C++ 编译、数组写入及运行错误 |
 | agent-conversation.test.mjs | 十轮/字符/TTL/容量上限、运行/来源隔离、幂等/并发、直接追问与prompt真实状态、空输出处理 |
 | agent-explain.test.mjs | 真实步骤/来源、三档提示、请求限制及缺配置处理 |
 | agent-provider.test.mjs | 超时、用量、来源限流、预算持久预留 |
@@ -27,7 +29,7 @@ npm run check:content
 | fixtures/deepseek-fetch.mjs | Agent真实模式测试使用的本地桩，不是生产模型或效果证据 |
 | *.browser.mjs | 正式入口、动画/代码/变量、聊天、三级提示、错题记录、旧请求隔离及手机布局 |
 
-npm test运行所有.test.mjs，当前41项；独立后端验收另用test:backend，避免普通单元回归重复启动整套审查。TEST_REPORT_PATH可指定后端结果输出文件，建议artifacts/local/backend-acceptance-results.json；默认不写结果，不覆盖历史证据。无Git的源代码副本仍可运行检查，报告中的提交信息为null。
+`npm test` 运行所有 `.test.mjs`，PR #42 在本机通过 49 项。缺少 Windows 工具链时跳过实际编译用例，仍检查自定义代码请求和语法。独立后端验收使用 `npm run test:backend`。可用 `TEST_REPORT_PATH` 将输出保存到 `artifacts/local/`。
 
 ## 浏览器检查
 
@@ -44,7 +46,7 @@ node tests/workbench-layout.browser.mjs
 node tests/learning-pages.browser.mjs
 ```
 
-分页面检查覆盖五页独立显示及课程目录/二分入口、知识卡按需读取/失败重试、题目判分与记录共享、重练跳转、前进后退/刷新、运行和聊天保留、离页暂停及390/320px适配。
+分页面检查覆盖五页导航、71 个笔记入口、两个算法的笔记直达、练习记录、前进后退与窄屏布局。动画窗口检查覆盖二分查找新旧视图、冒泡排序交换和回退、步骤问答、三级提示和错题重练。有本机编译器时也会验证修改代码后的实际回放。
 
 布局检查覆盖侧栏、330px源码/四变量、白底、自适应同排时间轴、浮窗保留草稿/回答/步骤归属、知识卡及320px适配。恢复窗口检查覆盖真实run、时间轴/源码及05/07同步、平移缩放、窗口拖动/全屏/销毁、100项取景与手机布局；截图输出包括工作区、全屏和手机视口。
 

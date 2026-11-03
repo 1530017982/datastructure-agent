@@ -2,7 +2,7 @@
 
 **看懂每一步：数据结构与算法可视化学习助手。**
 
-截至2026-10-23，main已合并至PR #33（`1bd0d74`），已接入04的真实二分查找run、03动画/播放、源码高亮与变量，以及05步骤辅导与独立知识卡查询。正常启动后直接访问工作台。06已提供10张自编知识卡和10题，09需求/原型/图表已合并。07已补齐固定过程题、三级提示、错题重练和本机学习记录，可在无模型Key时使用；本地功能检查通过，真实模型效果、真实调研与08独立验收仍待完成。工作台状态和检查见[接入说明](frontend/src/features/workbench/README.md)、[工作台验收](docs/architecture/workbench-check-20261022.md)与[07代码验收](docs/architecture/exercises-check-20261023.md)。
+工作台提供二分查找和冒泡排序。两种算法共用 SVG 数组动画、源码高亮和时间轴，分别有 10 道过程题，并支持当前步骤问答、三级提示与本机错题重练。学习笔记覆盖八章、71 个目录入口，查找与排序笔记可直接打开对应工作台。Windows 本机还可以编译 C/C++ 数组函数，回放实际执行步骤。
 
 现行实现、最新用户调整和剩余验收统一见[当前项目状态](docs/architecture/current-status.md)。日期命名的旧检查记录保留当时结果，不能直接当成当前界面说明。
 
@@ -32,7 +32,7 @@ npm run check
 npm start
 ```
 
-访问 <http://127.0.0.1:3000>。内置二分查找与冒泡排序可直接使用动画、步骤问答和过程练习。排序与查找笔记中都有入口，可打开对应工作台。
+访问 <http://127.0.0.1:3000>。内置动画和程序判分无需配置模型或编译器。
 
 ### 自定义代码
 
@@ -55,7 +55,7 @@ npm start
 Invoke-RestMethod http://127.0.0.1:3000/api/health
 ```
 
-当前预期为 `ok=true`、`stage=scaffold`、`implemented` 包含 `static-page/health/runs/exercises/agent/knowledge`。mode为disabled/mock/deepseek，modelCallsEnabled只在真实模式为true。正式工作台已接入真实动画、源码/变量与辅导，独立聊天页保留；07练习/记录已接入正式工作台；知识接口已支持按问题查询verified知识卡，见[检索说明](backend/src/knowledge/README.md)。检查结束后在运行 `npm start` 的窗口按 Ctrl+C 停止服务。
+服务正常时返回 `ok=true`。模型模式 `mode` 为 `disabled`、`mock` 或 `deepseek`，仅真实模式的 `modelCallsEnabled` 为 `true`。结束后在运行 `npm start` 的窗口按 Ctrl+C 停止服务。
 
 可在服务运行时验证完整轨迹：
 
@@ -68,7 +68,7 @@ Invoke-RestMethod http://127.0.0.1:3000/api/exercises
 
 标准案例为5步、result=3；详细输入上限、返回字段及提示响应见[API契约](docs/architecture/api-contract.md)。
 
-工作台已按用户确认的09原型模式调整：侧栏可收起，代码与白底动画并排，四变量横排，时间轴位于播放栏右侧；步骤辅导放在右下悬浮窗口，知识卡放在独立的“知识与辅导”页面。启动后刷新即可查看；[当前布局与验收截图](docs/architecture/workbench-layout-check-20261023.md)。
+工作台将源码和白底动画并排显示，时间轴与播放按钮同排。「本步解释」使用透明背景，步骤问答在右下方浮窗打开。二分查找可用 `/?viz=legacy#workbench?algorithm=binary-search` 切回旧版卡片动画。此前布局截图见[历史验收记录](docs/architecture/workbench-layout-check-20261023.md)。
 
 聊天已改为直接模型问答：不做知识检索门槛，携带服务端当前/上一步状态、完整展示代码和高亮行。连续追问：同一运行最多参考最近10轮并限制总长度，换运行隔离；提示词采用直白的助教风格，聊天不显示知识卡出处，独立知识卡阅读保留。[实现与本地检查](docs/architecture/agent-direct-chat-check-20261023.md)。真实模型语气效果仍待实测。
 
@@ -80,7 +80,9 @@ Invoke-RestMethod http://127.0.0.1:3000/api/exercises
 
 ## 09原型预览
 
-在仓库根目录另开PowerShell窗口执行：
+第二次团队作业的设计材料见[墨刀交互原型](https://modao.cc/proto/3HJhnZvjtnx1qi8zOJuwJ2/sharing?view_mode=device&screen=rbpVZtVdCQxwcw14I)、[系统设计说明书](docs/design/看懂每一步_系统设计说明书.pdf)和[数据库设计说明书](docs/design/看懂每一步_数据库设计说明书.pdf)。
+
+如需查看仓库保留的早期 HTML 原型，在仓库根目录另开 PowerShell 窗口执行：
 
 ```powershell
 node docs/prototype/preview.mjs

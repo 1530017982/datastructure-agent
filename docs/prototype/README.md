@@ -2,6 +2,8 @@
 
 历史原型：本目录保留2026-10-20的设计交互和截图。其模拟501/503、知识出处和旧布局不是当前生产行为；生产五页目录及直接问答见[当前状态](../architecture/current-status.md)。
 
+第二次团队作业另有[墨刀交互原型](https://modao.cc/proto/3HJhnZvjtnx1qi8zOJuwJ2/sharing?view_mode=device&screen=rbpVZtVdCQxwcw14I)，设计说明书见[仓库 README](../../README.md#09原型预览)。
+
 成员09：王元豪（102401629 / hsjjsjajja）；资料由用户2026-10-20提供，角色由01确认。可审阅设计，尚非生产前端。
 
 ## 运行与预览
@@ -36,6 +38,6 @@ node docs/prototype/preview.mjs
 - [操作/异常/手机说明](interaction-spec.md)、[需求正文](../product/requirements.md)、[覆盖规划](../product/coverage-plan.md)、[图表](../architecture/diagrams/README.md)。
 - 标志源文件：[彩色SVG](assets/logo.svg)、[单色SVG](assets/logo-mono.svg)，常用导出：[128px PNG](assets/logo-128.png)、[512px PNG](assets/logo-512.png)。
 
-标志使用阶梯节点和向前箭头表达逐步理解，薄荷绿起点代表可观察证据，紫色为主色（#6650cf）。SVG为手工矢量，可直接编辑，非AI位图。图标方形用于网页，PPT/博客可在旁边加“看懂每一步”；队名未确认，不把暂用名写成正式队名。留白至少图标宽度的1/8，小尺寸优先128px导出或SVG；不得去掉原型截图中的证据边界标签。
+标志使用阶梯节点和向前箭头表达逐步理解，薄荷绿起点代表可观察证据，紫色为主色（#6650cf）。SVG 可直接编辑。网页可使用方形图标，PPT 和博客可在旁边加团队名称「看懂每一步」。留白至少为图标宽度的 1/8，小尺寸优先使用 128px 导出或 SVG。原型截图保留原证据标签。
 
 原型实查及缺项见[核验记录](../product/review-20261020.md)。图、页面、来源和异常需相关负责人复核，本文不代替团队确认。

@@ -1,6 +1,6 @@
 # 二分查找执行状态 v1
 
-更新：2026-10-19；main `d1ce117` 已合并04的引擎。实现位于 [binarySearch.js](../../shared/algorithms/binarySearch.js)，导出 generateSteps、SOURCE_VERSION、SOURCE_LINES。HTTP入口负责输入校验；直接调用纯引擎前需满足[API输入条件](api-contract.md)。
+更新：2026-11-03。二分查找实现位于 [binarySearch.js](../../shared/algorithms/binarySearch.js)，导出 `generateSteps`、`SOURCE_VERSION` 和 `SOURCE_LINES`。冒泡排序和自定义代码的步骤字段另见[API 契约](api-contract.md#运行与步骤)。
 
 ## 算法及版本
 
@@ -12,7 +12,7 @@ probe 显示当前比较位置；边界更新后 mid=null；not-found 结束时 
 
 ## 当前源码映射
 
-API 的 sourceLines 是当前引擎导出的13行展示片段，不是完整可独立编译的 C 程序。以下为实际稳定映射；事件名称与 lineId 不必相同。
+API 的 `sourceLines` 是完整的 15 行 C/C++ 函数 `binary_search`，参数为数组、长度与目标值。以下为稳定映射，事件名称与 `lineId` 可以不同。
 
 | event | lineId | 展示语句 |
 |---|---|---|
@@ -23,7 +23,7 @@ API 的 sourceLines 是当前引擎导出的13行展示片段，不是完整可�
 | found | found | return mid; |
 | not-found | not-found | return -1; |
 
-其余源码行标识为 init-right、loop-check、probe-match、probe-less、probe-greater、loop-end、loop-end-2；消费者使用 API 的 sourceLines 渲染，避免自行维护第二份代码。
+其余源码行标识包括 `function-start`、`function-end`、`init-right`、`loop-check`、`probe-match`、`probe-less`、`probe-greater`、`loop-end` 和 `loop-end-2`。前端使用 API 的 `sourceLines` 渲染。
 
 ## 标准轨迹
 
@@ -37,10 +37,10 @@ API 的 sourceLines 是当前引擎导出的13行展示片段，不是完整可�
 | 3 | probe | 3 | 4 | 3 | calc-mid | false | null |
 | 4 | found | 3 | 4 | 3 | found | true | 3 |
 
-[单步人工样例](../../shared/examples/step.example.json)现与标准轨迹第0步一致；样例文件本身仍不是运行证据。[后端核验记录](backend-check-20261019.md)记录独立检查范围；08交叉验收与消费者联调仍待完成。
+[单步人工样例](../../shared/examples/step.example.json)与标准轨迹第 0 步一致。[历史后端核验记录](backend-check-20261019.md)与 [PR #42 的本地回归](https://github.com/tw1l1ghtcc/datastructure-agent/pull/42)分别记录各自的验证范围。
 
 ## 消费者联调边界
 
-03播放任意step时，02/05/07应共享同一runId/stepIndex；回看读取已有步骤，不重新生成轨迹。Agent引用应固定到被问步骤，切换步骤不改写历史引用。前端挂载、通知、重置和销毁接口仍需02/03协同确认。
+播放、代码高亮和辅导共享同一 `runId` 与 `stepIndex`。回看读取已有步骤，问答保留发问时的步骤归属。前端挂载、通知、重置与销毁见[工作台说明](../../frontend/src/features/workbench/README.md)。
 
 现有 Schema 约束字段类型、枚举及部分范围；安全整数、有序性、索引关系、事件/result一致性和快照独立性需业务验证。npm run check 不执行 Schema 或算法正确性验证。已实现行为与待确认事项见[接口对齐清单](contract-alignment.md)。
