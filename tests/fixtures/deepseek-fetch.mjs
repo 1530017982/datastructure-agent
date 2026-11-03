@@ -12,7 +12,7 @@ globalThis.fetch=async(url,options)=>{
  const content=request.messages.at(-1).content;
  const question=content.split('【学生本轮问题】').at(-1);
  if(question.includes('TEST_PAGE_CONTEXT')) {
-  for(const value of ['"sourceVersion":"c-v1"','"activeLineId":"update-left"','"lineId":"update-left"','"active":true','"comparedValue":5','mid: 未计算','目标值: 7'])
+  for(const value of ['"sourceVersion":"c-v2"','int binary_search(','"activeLineId":"update-left"','"lineId":"update-left"','"active":true','"comparedValue":5','mid: 未计算','目标值: 7'])
     if(!content.includes(value))throw Error('Missing page context '+value);
   if(content.includes('【本轮提供的已核验知识卡】')||content.includes('卡片ID：'))throw Error('Unexpected knowledge prompt');
  }

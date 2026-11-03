@@ -1,10 +1,20 @@
+function validScenario(context, topic) {
+  if (!context || !Array.isArray(context.array) || context.array.length > 100 ||
+      !context.array.every(Number.isSafeInteger)) return false;
+  if (topic === 'bubble-sort') {
+    const { array, pass, index, sortedFrom, event } = context;
+    return Number.isSafeInteger(pass) && pass >= 0 && Number.isSafeInteger(sortedFrom) &&
+      sortedFrom >= 0 && sortedFrom <= array.length && ['init', 'compare', 'swap', 'pass-end', 'sorted'].includes(event) &&
+      (index === null || (Number.isSafeInteger(index) && index >= 0 && index + 1 < array.length));
+  }
+  return Number.isSafeInteger(context.target) && Number.isSafeInteger(context.left) &&
+    Number.isSafeInteger(context.right) && (context.mid === null || Number.isSafeInteger(context.mid));
+}
+
 export function publicQuestion(raw) {
   if (!raw || !['value', 'choice', 'judgement'].includes(raw.type) ||
       ['id', 'version', 'topicId', 'prompt'].some(key => typeof raw[key] !== 'string' || !raw[key].trim()) ||
-      !raw.context || !Array.isArray(raw.context.array) || raw.context.array.length > 100 ||
-      !raw.context.array.every(Number.isSafeInteger) || !Number.isSafeInteger(raw.context.target) ||
-      !Number.isSafeInteger(raw.context.left) || !Number.isSafeInteger(raw.context.right) ||
-      !(raw.context.mid === null || Number.isSafeInteger(raw.context.mid)) || !Array.isArray(raw.options)) throw new Error('题目数据不完整，请刷新题库。');
+      !validScenario(raw.context, raw.topicId) || !Array.isArray(raw.options)) throw new Error('题目数据不完整，请刷新题库。');
   const options = raw.options.map(option => {
     if (!option || typeof option.id !== 'string' || !option.id.trim() || typeof option.text !== 'string') throw new Error('题目选项格式不正确。');
     return { id: option.id, text: option.text };
@@ -64,6 +74,14 @@ export function exerciseText(text) {
   return String(text).replace(/\b(before-probe|move-left|move-right|not-found|init|probe|found|null)\b/g, name => readingNames[name]).replaceAll('快照', '状态');
 }
 
-export function contextText(context) {
+const sortingStages = { init: '排序开始', compare: '比较相邻元素', swap: '交换完成', 'pass-end': '本轮结束', sorted: '排序完成' };
+
+export function contextText(context, topic) {
+  if (topic === 'bubble-sort') {
+    const { array, event, pass, index, sortedFrom } = context;
+    const comparison = index === null ? '' : `；相邻下标 ${index} 和 ${index + 1}`;
+    const settled = sortedFrom < array.length ? `；已就位区间 ${sortedFrom}～${array.length - 1}` : '；暂无已就位元素';
+    return `数组 [${array.join(', ')}]；${sortingStages[event]}${pass ? `（第 ${pass} 轮）` : ''}${comparison}${settled}。`;
+  }
   return `数组 [${context.array.join(', ')}]，目标 ${context.target}；当前阶段：${Object.hasOwn(stageNames, context.event) ? stageNames[context.event] : '按题目给定状态'}；左边界 left=${context.left}，右边界 right=${context.right}，中点下标 mid=${context.mid == null ? '未计算' : context.mid}。`;
 }

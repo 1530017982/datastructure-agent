@@ -60,7 +60,7 @@ function prefersReducedMotion() {
  */
 export function describeStep(step) {
   if (!step) return '无步骤数据';
-  if (step.algorithm === 'bubble-sort') return `第 ${step.stepIndex + 1} 步：${step.description}`;
+  if (step.algorithm === 'bubble-sort' || step.algorithm === 'custom-array') return `第 ${step.stepIndex + 1} 步：${step.description}`;
   const { array = [], target, variables = {}, event, done, result } = step;
   const { left, right, mid } = variables;
   const parts = [`第 ${step.stepIndex + 1} 步：${EVENT_TEXT[event] ?? event}`];
@@ -88,7 +88,7 @@ export function describeStep(step) {
  */
 export function describeTransition(previous, current) {
   if (!current) return '';
-  if (current.algorithm === 'bubble-sort') return current.description;
+  if (current.algorithm === 'bubble-sort' || current.algorithm === 'custom-array') return current.description;
   const { array = [], target, variables = {}, event, result } = current;
   const { left, right, mid } = variables;
   const last = array.length - 1;

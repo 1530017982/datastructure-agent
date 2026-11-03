@@ -68,3 +68,7 @@
 .workbench-algorithm select { padding: 6px 8px; }
 .input-panel.sorting-input { grid-template-columns: minmax(0, 1fr) auto; }
 .sorting-input .input-actions { grid-column: 2; }
+#custom-code-fields { grid-column: 1 / -1; display: grid; gap: 10px; min-width: 0; }
+#code-language { width: fit-content; }
+#code-input { display: block; width: 100%; padding: 10px; resize: vertical; font: 13px/1.6 Consolas, monospace; }
+#code-help { font-size: 11px; }

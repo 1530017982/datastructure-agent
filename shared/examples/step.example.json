@@ -3,7 +3,7 @@
   "algorithm": "binary-search",
   "stepIndex": 0,
   "event": "init",
-  "sourceVersion": "c-v1",
+  "sourceVersion": "c-v2",
   "lineId": "init-left",
   "array": [
     1,

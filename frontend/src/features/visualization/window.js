@@ -76,7 +76,8 @@ export function createVizWindow(host, {
   root.className = 'win vizwin';
   root.dataset.win = 'viz';
   const sorting = algorithm === 'bubble-sort';
-  const useLegacy = !sorting && new URLSearchParams(window.location.search).get('viz') === 'legacy';
+  const custom = algorithm === 'custom-array';
+  const useLegacy = !sorting && !custom && new URLSearchParams(window.location.search).get('viz') === 'legacy';
   root.innerHTML = TEMPLATE;
   if (sorting) {
     root.querySelector('.win-sub').textContent = '冒泡排序 · 数组视图';
@@ -84,6 +85,13 @@ export function createVizWindow(host, {
     const legend = root.querySelector('.viewport-legend');
     legend.setAttribute('aria-label', '排序图例');
     legend.innerHTML = '<span><b class="legend-mid">绿</b> 已就位</span><span><b class="legend-right">橙</b> 比较或交换</span>';
+  }
+  if (custom) {
+    root.querySelector('.win-sub').textContent = '自定义代码 · 数组视图';
+    root.querySelector('.vh-sub').textContent = '按实际执行记录播放';
+    const legend = root.querySelector('.viewport-legend');
+    legend.setAttribute('aria-label', '数组写入图例');
+    legend.innerHTML = '<span><b class="legend-right">橙</b> 本步写入位置</span>';
   }
   host.append(root);
 

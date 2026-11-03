@@ -41,7 +41,8 @@ export function createAgentChat(container, { embedded = false, onBeforeSend = ()
     send.textContent = busy ? '等待回复…' : '发送';
     send.title = busy ? '回复完成后可发送下一条问题' : embedded && !context ? '先填入数组并点击“开始分析”' : '发送问题';
     question.disabled = false;
-    question.placeholder = embedded && !context ? '可以先写问题，开始分析后再发送。' : '为什么下一步更新左边界？';
+    question.placeholder = embedded && !context ? '可以先写问题，开始分析后再发送。'
+      : context?.algorithm === 'bubble-sort' ? '为什么要比较或交换这两个元素？' : '为什么下一步更新左边界？';
   }
   function label() { $('current-step-label').textContent = stepInput.value === '' ? (embedded ? '可以先写问题；填入数组并点击“开始分析”后即可发送。' : '先创建一次运行，再针对步骤提问。') : `当前选中：第 ${Number(stepInput.value)+1} 步`; }
   async function refreshUsage(sid = runInput.value.trim()) {
@@ -91,7 +92,7 @@ export function createAgentChat(container, { embedded = false, onBeforeSend = ()
       serial++; controller?.abort(); controller = null; loading?.remove(); loading = null; busy = false;
       failed = null; retry.style.display = 'none'; resetConversation();
     }
-    context = valid ? {runId:next.runId,stepIndex:next.stepIndex} : null;
+    context = valid ? {runId:next.runId,stepIndex:next.stepIndex,algorithm:next.algorithm} : null;
     runInput.value = context?.runId || ''; stepInput.value = context ? String(context.stepIndex) : '';
     label(); controls(); if (!valid || oldRun !== context.runId) refreshUsage();
   }

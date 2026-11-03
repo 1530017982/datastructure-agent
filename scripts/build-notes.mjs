@@ -131,9 +131,9 @@ function renderChapter(markdown, sections) {
         const level = Math.min(depth + 1, 6);
         const anchor = id ? ` id="${id}" tabindex="-1"` : '';
         const heading = `<h${level}${anchor}>${this.parser.parseInline(tokens)}</h${level}>\n`;
-        return id === 'search-2'
-          ? heading + '<a class="secondary page-link" href="#workbench">进入二分查找工作台 →</a>\n'
-          : heading;
+        if (id === 'search-2') return heading + '<a class="secondary page-link" href="#workbench?algorithm=binary-search">进入二分查找工作台 →</a>\n';
+        if (id === 'sort-2') return heading + '<a class="secondary page-link" href="#workbench?algorithm=bubble-sort">进入冒泡排序工作台 →</a>\n';
+        return heading;
       },
       html({ text }) { return escapeHTML(text); },
       link({ href, tokens }) {

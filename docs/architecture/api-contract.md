@@ -9,9 +9,10 @@
 | GET /api/health | 200；ok=true、stage=scaffold、implemented 包含 static-page/health/runs/exercises/agent/knowledge；mode 为 disabled/mock/deepseek，modelCallsEnabled 按实际模式返回 | 04 |
 | POST /api/algorithms/binary-search/runs | 200，创建并返回完整 run | 04 |
 | POST /api/algorithms/bubble-sort/runs | 200，创建并返回冒泡排序 run | 01 |
+| POST /api/algorithms/custom-array/runs | 本机 Windows，编译并执行自定义数组代码，200 返回实际执行 run | 01 |
 | GET /api/runs/:runId | 200，返回同一完整 run | 04 |
 | GET /api/runs/:runId/steps/:stepIndex | 200，返回 `{runId,step}` | 04 |
-| GET /api/exercises | 200，返回 `{exercises:[...]}`，当前10题 | 04+06 |
+| GET /api/exercises | 200，返回 `{exercises:[...]}`；默认二分查找10题，可用 `topicId=bubble-sort` 读取冒泡排序10题，或 `topicId=all` 读取两个题库 | 04+06 |
 | POST /api/exercises/check | 200，程序判分及固定提示 | 04+07 |
 | POST /api/agent/explain | 无Key且未开Mock时503；显式AGENT_MOCK=true优先；否则有Key直接调用DeepSeek，返回真实步骤归属；聊天sourceRefs为空 | 05，04整合入口 |
 | GET /api/agent/usage?sessionId=... | 200，当前来源/会话的请求数、失败数、耗时及已知用量；未知值null | 05 |
@@ -30,8 +31,8 @@
 | runId | 服务端生成的字符串 |
 | createdAt | Date.now()，毫秒时间戳数字 |
 | algorithm | binary-search |
-| sourceVersion | c-v1 |
-| sourceLines | `[{lineId,text}]`，当前13行 C/C++ 风格展示片段 |
+| sourceVersion | c-v2 |
+| sourceLines | `[{lineId,text}]`，15 行 C/C++ 函数 `binary_search`，包含函数声明与结尾 |
 | steps | 完整步骤数组；schemaVersion=1.0，格式见[状态契约](trace-contract.md) |
 | result | 匹配下标或-1，与最终步骤一致 |
 
@@ -39,7 +40,9 @@
 
 stepIndex 使用十进制非负整数字符串；超出已存在 run 的步骤范围返回400 STEP_OUT_OF_RANGE。负数、小数和非数字路径不匹配当前路由，返回404 NOT_FOUND。不存在或已过期的 run 返回404 RUN_NOT_FOUND。
 
-冒泡排序使用 `{"array":[5,1,4,2]}` 创建运行。接受 0 到 24 个安全整数，允许乱序、负数和重复值。它共用运行和步骤查询接口，`algorithm` 为 `bubble-sort`，`sourceVersion` 为 `bubble-c-v1`，最终 `result` 为升序数组。每一步保存当前 `array`、说明 `description` 和 `variables: {pass, index, sortedFrom}`。其中 `index` 是相邻比较的左下标，无比较时为 `null`，`sortedFrom` 起为已就位区间。事件为 `init`、`compare`、`swap`、`pass-end`、`sorted`。步骤问答和现有过程练习仍面向二分查找。
+冒泡排序使用 `{"array":[5,1,4,2]}` 创建运行。接受 0 到 24 个安全整数，允许乱序、负数和重复值。它共用运行和步骤查询接口，`algorithm` 为 `bubble-sort`，`sourceVersion` 为 `bubble-c-v1`，最终 `result` 为升序数组。每一步保存当前 `array`、说明 `description` 和 `variables: {pass, index, sortedFrom}`。其中 `index` 是相邻比较的左下标，无比较时为 `null`，`sortedFrom` 起为已就位区间。事件为 `init`、`compare`、`swap`、`pass-end`、`sorted`。步骤问答使用当前和上一步的数组，回复的 `stepRefs` 包含 `algorithm`、`array` 和排序变量。冒泡排序题可独立作答，和二分查找共用判分接口与本机记录。
+
+自定义数组代码接受 `{language, source, array}`，语言为 `c` 或 `cpp`，代码最多 5000 字符，数组最多 24 个 32 位整数。入口为单个 `void sort(int a[], int n)` 函数，支持初始化的整数变量、数组读写、带花括号的条件和循环。后端检查语法后插入数组访问检查与记录，再调用 `third_party/open-watcom` 下的本机编译器。运行只接受回环连接，支持用 `http://127.0.0.1:3000` 打开。结果共用运行与步骤查询接口，`algorithm` 为 `custom-array`，事件为 `init`、`condition`、`write` 和 `finished`。每步包含原始源码行、数组和 `variables: {line, index, writes}`。数组越界、运算错误或超出执行限制返回 422，编译器缺失返回 503。
 
 ## 题目与判分
 

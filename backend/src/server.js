@@ -7,6 +7,8 @@ import { handleCreateRun, handleCreateBubbleRun, handleGetRun, handleGetStep } f
 import { handleGetExercises, handleCheckExercise } from './routes/exercises.js';
 import { getUsage } from './agent/rate-limit.js';
 import { knowledgeResponse } from './knowledge/retrieve.js';
+import { acceptsLocalCode, CodeRunError, runCustomCode } from './custom-code/runner.js';
+import { createRun } from './runs/store.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const frontendRoot = resolve(here, '../../frontend');
@@ -55,6 +57,25 @@ const server = createServer(async (request, response) => {
     }
     if (pathname === '/api/algorithms/bubble-sort/runs' && method === 'POST') {
       return handleCreateBubbleRun(response, await readBody(request));
+    }
+    if (pathname === '/api/algorithms/custom-array/runs' && method === 'POST') {
+      if (!acceptsLocalCode(request)) {
+        return json(response, 403, { error: { code: 'LOCAL_ONLY', message: '请从本机工作台打开自定义代码。' } });
+      }
+      if (request.headers['content-type']?.split(';')[0].trim().toLowerCase() !== 'application/json') {
+        return json(response, 400, { error: { code: 'INVALID_INPUT', message: '请求必须是 JSON。' } });
+      }
+      const body = await readBody(request);
+      let input;
+      try { input = JSON.parse(body); } catch {
+        return json(response, 400, { error: { code: 'INVALID_INPUT', message: '请求体不是合法 JSON。' } });
+      }
+      try {
+        return json(response, 200, createRun(await runCustomCode(input)));
+      } catch (error) {
+        if (!(error instanceof CodeRunError)) throw error;
+        return json(response, error.status, { error: { code: error.code, message: error.message } });
+      }
     }
 
     const stepMatch = pathname.match(/^\/api\/runs\/([^/]+)\/steps\/(\d+)$/);

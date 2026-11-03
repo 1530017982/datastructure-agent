@@ -64,8 +64,8 @@ async function explain(parsedBody, ctx = {}) {
   if (!run) {
     return { status: 404, body: { error: { code: 'RUN_NOT_FOUND', message: 'run 不存在或已过期，请重新运行算法' } } };
   }
-  if (run.algorithm === 'bubble-sort') {
-    return { status: 400, body: { error: { code: 'INVALID_INPUT', message: '步骤问答目前支持二分查找。' } } };
+  if (run.algorithm === 'custom-array') {
+    return { status: 400, body: { error: { code: 'INVALID_INPUT', message: '自定义代码运行暂未接入步骤问答。' } } };
   }
   const steps = Array.isArray(run.steps) ? run.steps : [];
   if (idx >= steps.length) {
@@ -88,7 +88,10 @@ async function explain(parsedBody, ctx = {}) {
   // Compatibility metadata: chat does not read or cite the knowledge catalog.
   const metadata = { sourceRefs: [], knowledgeUsed: false,
     retrieval: { method: 'none', status: 'disabled', matchedCardIds: [], contextCardId: null, matches: [] } };
-  const stepRefs = [{ runId, stepIndex: idx, event: ev, left, right, mid, array: arr, target }];
+  const sorting = run.algorithm === 'bubble-sort';
+  const stepRefs = sorting
+    ? [{ runId, stepIndex: idx, algorithm: run.algorithm, event: ev, array: arr, variables: step.variables }]
+    : [{ runId, stepIndex: idx, event: ev, left, right, mid, array: arr, target }];
 
   // Every valid question in real mode goes to the provider after quota checks.
   // ===== 真实模型模式 =====
@@ -149,7 +152,14 @@ async function explain(parsedBody, ctx = {}) {
   const prefix = '[Mock开发模式] ';
   let answer = '';
 
-  if (typeof left === 'number' && typeof right === 'number' && left > right) {
+  if (sorting) {
+    const { pass, index, sortedFrom } = step.variables;
+    const comparison = index === null ? '' : ` 关注下标 ${index} 和 ${index + 1}。`;
+    const settled = sortedFrom < arr.length ? `下标 ${sortedFrom} 到 ${arr.length - 1} 的元素已就位。` : '目前还没有确认就位的元素。';
+    answer = `${prefix}冒泡排序第 ${stepNo + 1} 步，当前数组 [${arr.join(', ')}]。${pass ? `第 ${pass} 轮。` : ''}${comparison} ${settled}`;
+    if (level >= 2) answer += ` ${step.description}`;
+    if (level === 3 && steps[idx + 1]) answer += ` 下一步：${steps[idx + 1].description}`;
+  } else if (typeof left === 'number' && typeof right === 'number' && left > right) {
     answer = `${prefix}候选区间已为空（left=${left} > right=${right}），查找结束，返回 -1（not-found）。`;
   } else if (level === 1) {
     answer = `${prefix}当前步骤（第${stepNo + 1}步）：事件为 ${ev}，区间 [${left}, ${right}]`;

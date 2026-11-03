@@ -3,20 +3,24 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const oraclePath = resolve(here, '../../../content/exercises/binary-search.json');
-let oracleData = [];
-
-// 启动时加载数据
-try {
-  const raw = await readFile(oraclePath, 'utf-8');
-  oracleData = JSON.parse(raw);
-} catch (e) {
-  console.error("无法读取题库数据，请检查路径:", oraclePath);
+const topics = ['binary-search', 'bubble-sort'];
+const catalogs = new Map();
+for (const topic of topics) {
+  const path = resolve(here, '../../../content/exercises', topic + '.json');
+  try {
+    catalogs.set(topic, JSON.parse(await readFile(path, 'utf-8')));
+  } catch {
+    console.error('无法读取题库数据，请检查路径:', path);
+    catalogs.set(topic, []);
+  }
 }
+const oracleData = [...catalogs.values()].flat();
 
 // GET /api/exercises：展示题目，白名单剥离答案
 export function handleGetExercises(req, res) {
-  const publicExercises = oracleData.map(ex => ({
+  const topic = new URL(req.url, 'http://localhost').searchParams.get('topicId') ?? 'binary-search';
+  if (topic !== 'all' && !catalogs.has(topic)) return sendError(res, 400, 'INVALID_INPUT', '题目主题不存在');
+  const publicExercises = (topic === 'all' ? oracleData : catalogs.get(topic)).map(ex => ({
     id: ex.id,
     version: ex.version, // 修复审查意见：保留版本号
     topicId: ex.topicId,
