@@ -6,7 +6,7 @@
 
 采用闭区间[left,right]，零下标，mid向下取整。重复值命中返回任一实际匹配下标，未找到为-1。初始化left=0、right=array.length-1、mid=null；空数组产生初始化与not-found两步，不访问元素。
 
-schemaVersion 固定为 `1.0`，sourceVersion 当前为 `c-v1`。每步字段：schemaVersion、algorithm、stepIndex、event、sourceVersion、lineId、array、target、variables、done、result。variables 含 left/right/mid；步骤数组从0连续编号，array 和 variables 为独立快照。
+schemaVersion 固定为 `1.0`，二分查找的 sourceVersion 当前为 `c-v2`。每步字段：schemaVersion、algorithm、stepIndex、event、sourceVersion、lineId、array、target、variables、done、result。variables 含 left/right/mid；步骤数组从0连续编号，array 和 variables 为独立快照。
 
 probe 显示当前比较位置；边界更新后 mid=null；not-found 结束时 mid=null。仅 found/not-found 的 done=true，result 分别为命中下标/-1；其他步骤 result=null。
 

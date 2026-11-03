@@ -13,3 +13,4 @@ Thumbs.db
 .vs/
 data/private/
 artifacts/local/
+third_party/open-watcom/

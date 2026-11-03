@@ -34,6 +34,7 @@ export function buildPrototypeArrayFrame(step, { previous, enter, reduced }) {
   const { array, variables, event, result } = step;
   const { left, right } = variables;
   const sorting = step.algorithm === 'bubble-sort';
+  const custom = step.algorithm === 'custom-array';
   const adjacent = previous && Math.abs(previous.stepIndex - step.stepIndex) === 1;
   const swapIndex = !enter && adjacent
     ? (step.stepIndex > previous.stepIndex && event === 'swap' ? variables.index
@@ -70,11 +71,12 @@ export function buildPrototypeArrayFrame(step, { previous, enter, reduced }) {
   array.forEach((value, index) => {
     const x = center(index);
     const y = yFor(value);
-    const excluded = !sorting && (index < left || index > right);
+    const excluded = !sorting && !custom && (index < left || index > right);
     const cell = svgElement('g', { class: 'prototype-array-cell', 'data-index': index });
     if (excluded) cell.classList.add('is-excluded');
     if (index === variables.mid) cell.classList.add('is-mid');
     if (event === 'found' && index === result) cell.classList.add('is-found');
+    if (custom && event === 'write' && index === variables.index) cell.classList.add('is-comparing');
     if (sorting) {
       if (index >= variables.sortedFrom) cell.classList.add('is-sorted');
       if (variables.index !== null && (index === variables.index || index === variables.index + 1)) {
@@ -103,8 +105,9 @@ export function buildPrototypeArrayFrame(step, { previous, enter, reduced }) {
     );
     chart.append(cell);
 
-    const wasExcluded = !sorting && previous && (index < previous.variables.left || index > previous.variables.right);
-    if (enter || (previous && excluded !== wasExcluded) || cell.classList.contains('is-found')) {
+    const wasExcluded = !sorting && !custom && previous && (index < previous.variables.left || index > previous.variables.right);
+    if (enter || (previous && excluded !== wasExcluded) || cell.classList.contains('is-found') ||
+        (custom && event === 'write' && index === variables.index)) {
       if (!reduced) cell.animate([{ opacity: enter || !excluded ? 0.2 : 1 }, { opacity: excluded ? 0.4 : 1 }], {
         duration: 260, easing: 'ease-out', delay: enter ? (index % 8) * 35 : 0,
       });

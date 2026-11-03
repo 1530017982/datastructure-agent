@@ -4,7 +4,7 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
   const lifetime = new AbortController();
   const listen = (node, type, fn) => node.addEventListener(type, fn, { signal: lifetime.signal });
   const panel = $('tutor-window'), ball = $('tutor-toggle'), sidebar = $('sidebar-toggle');
-  let tutorAvailable = true;
+  let algorithm = 'binary-search';
   const uiKey = 'datastructure-agent:workbench-ui:v1';
   const nav = document.querySelector('.sidebar nav');
   function syncNavIndicator() {
@@ -93,23 +93,29 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
     return [name, {
       replace: true,
       unit: legacyIntro ? 'intro' : params.get('unit'),
-      section: legacyIntro ? 'basics' : params.get('section')
+      section: legacyIntro ? 'basics' : params.get('section'),
+      algorithm: params.get('algorithm')
     }];
   }
-  function navigate(name, { replace = false, unit = '', section = '' } = {}) {
+  function navigate(name, { replace = false, unit = '', section = '', algorithm: requestedAlgorithm = null } = {}) {
     if (!Object.hasOwn(pages,name)) name = 'workbench';
     const query = new URLSearchParams();
     if (name === 'knowledge' && unit && Array.from(notePicker.options).some(option => option.value === unit)) {
       query.set('unit', unit);
       if (section && /^[a-z0-9-]{1,50}$/.test(section)) query.set('section', section);
     }
+    if (name === 'workbench' && ['binary-search', 'bubble-sort', 'custom-array'].includes(requestedAlgorithm)) {
+      query.set('algorithm', requestedAlgorithm);
+    }
     const hash = '#' + name + (query.size ? '?' + query : '');
     if (location.hash !== hash) history[replace ? 'replaceState' : 'pushState'](null,'',hash);
     const pageChanged = currentPage !== name;
-    if (!pageChanged && (name !== 'knowledge' || activeNote === hash)) return;
+    const nextAlgorithm = query.get('algorithm');
+    const algorithmChanged = nextAlgorithm !== null && nextAlgorithm !== algorithm;
+    if (!pageChanged && !algorithmChanged && (name !== 'knowledge' || activeNote === hash)) return;
     if (name !== 'knowledge') noteRequest?.abort();
     document.querySelector('.vizwin[data-full="true"] [data-viz-full]')?.click();
-    onNavigate(name);
+    onNavigate(name, nextAlgorithm);
     if (open) show(false, false);
     for (const view of document.querySelectorAll('[data-page-view]')) view.hidden = view.dataset.pageView !== name;
     for (const link of document.querySelectorAll('.nav-item[data-page-link]')) {
@@ -121,7 +127,7 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
     currentPage = name; document.body.dataset.page = name;
     if (innerWidth <= 540) { document.body.dataset.sidebarCollapsed = 'true'; updateSidebar(); }
     $('page-breadcrumb').textContent = pages[name]; document.title = pages[name] + ' · 看懂每一步';
-    ball.hidden = name !== 'workbench' || !tutorAvailable;
+    ball.hidden = name !== 'workbench' || algorithm === 'custom-array';
     if (pageChanged) document.querySelector('[data-page-view="'+name+'"] h1')?.focus({preventScroll:true});
     window.scrollTo(0,0); queuePosition();
     if (name === 'knowledge') {
@@ -184,15 +190,26 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
     found: '如果数组有重复值，这次一定返回第一个位置吗？',
     'not-found': '哪个边界条件说明目标已经不在数组中了？'
   };
-  navigate(...route());
+  const sortingPrompts = {
+    init: '为什么从左向右比较相邻元素？',
+    compare: '这两个元素需要交换吗？',
+    swap: '这次交换把哪个值往右移了一格？',
+    'pass-end': '为什么这一轮最右边的元素已经就位？',
+    sorted: '如果有两个相等的元素，它们的相对顺序会变吗？',
+  };
   return {
+    start() { navigate(...route()); },
     navigate,
-    setTutorAvailable(available) {
-      tutorAvailable = available;
-      if (!available && open) show(false, false);
-      ball.hidden = currentPage !== 'workbench' || !available;
+    setAlgorithm(value) {
+      algorithm = value;
+      if (value === 'custom-array' && open) show(false, false);
+      ball.hidden = currentPage !== 'workbench' || value === 'custom-array';
     },
-    setContext(context) { $('tutor-prompt').textContent = prompts[context?.step?.event] || prompts.init; queuePosition(); },
+    setContext(context) {
+      const activePrompts = algorithm === 'bubble-sort' ? sortingPrompts : prompts;
+      $('tutor-prompt').textContent = activePrompts[context?.step?.event] || activePrompts.init;
+      queuePosition();
+    },
     destroy() { lifetime.abort(); noteRequest?.abort(); navObserver.disconnect(); delete nav.dataset.indicatorReady; nav.classList.remove('indicator-animated'); layoutObserver.disconnect(); if (positionFrame !== null) cancelAnimationFrame(positionFrame); }
   };
 }

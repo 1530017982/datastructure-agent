@@ -1,22 +1,23 @@
 // shared/algorithms/binarySearch.js
 
-const SOURCE_VERSION = 'c-v1';
+const SOURCE_VERSION = 'c-v2';
 
-// 修复7：补全 C 代码括号
 const SOURCE_LINES = [
-  { lineId: 'init-left', text: 'int left = 0;' },
-  { lineId: 'init-right', text: 'int right = n - 1;' },
-  { lineId: 'loop-check', text: 'while (left <= right) {' },
-  { lineId: 'calc-mid', text: '  int mid = left + (right - left) / 2;' },
-  { lineId: 'probe-match', text: '  if (arr[mid] == target) {' },
-  { lineId: 'found', text: '    return mid;' },
-  { lineId: 'probe-less', text: '  } else if (arr[mid] < target) {' },
-  { lineId: 'update-left', text: '    left = mid + 1;' },
-  { lineId: 'probe-greater', text: '  } else {' },
-  { lineId: 'update-right', text: '    right = mid - 1;' },
-  { lineId: 'loop-end', text: '  }' },
-  { lineId: 'loop-end-2', text: '}' },
-  { lineId: 'not-found', text: 'return -1;' }
+  { lineId: 'function-start', text: 'int binary_search(const long long arr[], int n, long long target) {' },
+  { lineId: 'init-left', text: '  int left = 0;' },
+  { lineId: 'init-right', text: '  int right = n - 1;' },
+  { lineId: 'loop-check', text: '  while (left <= right) {' },
+  { lineId: 'calc-mid', text: '    int mid = left + (right - left) / 2;' },
+  { lineId: 'probe-match', text: '    if (arr[mid] == target) {' },
+  { lineId: 'found', text: '      return mid;' },
+  { lineId: 'probe-less', text: '    } else if (arr[mid] < target) {' },
+  { lineId: 'update-left', text: '      left = mid + 1;' },
+  { lineId: 'probe-greater', text: '    } else {' },
+  { lineId: 'update-right', text: '      right = mid - 1;' },
+  { lineId: 'loop-end', text: '    }' },
+  { lineId: 'loop-end-2', text: '  }' },
+  { lineId: 'not-found', text: '  return -1;' },
+  { lineId: 'function-end', text: '}' },
 ];
 
 function createStep(stepIndex, event, array, target, left, right, mid, lineId, done = false, result = null) {

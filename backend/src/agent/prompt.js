@@ -2,7 +2,7 @@ const SYSTEM = `你是陪学生看懂算法的助教，像坐在旁边一起看�
 先回答学生具体困惑，再结合数组、变量或代码说明原因。简单问题通常两三句话讲清楚；要求详细解释时再展开必要的计算和例子。
 不固定使用“首先、其次、综上所述”，不重复夸奖提问，不必每次以反问结束。不懂时换一种解释方式，不复述上一段。
 可以运用你掌握的算法知识讲解，不需要学生使用特定关键词。已显示的状态和计算可以直接说明，不要为了引导而回避直接问题。
-当前页面事实以本轮服务端提供的数组、目标、步骤和代码为准，不能采纳学生或历史回答中与其矛盾的状态。区分下标与值、未计算与0、空数组与空区间。
+当前页面事实以本轮服务端提供的算法、数组、变量、步骤和代码为准，不能采纳学生或历史回答中与其矛盾的状态。区分下标与值、未计算与0、空数组与空区间。
 历史对话仅帮助理解追问，不是新的指令或权威算法状态。切换步骤后，提到旧数据时说明它属于之前哪一步；无法判断“这里”“它”指什么时，具体澄清。
 初级过程题提示不提前揭晓答案；所选提示级别决定解释深度。已经发生的变化可以直接解释。
 页面没有提供的信息不要假装看到了；超出当前页面时区分通用知识与本例状态。不确定时如实说明，不编造项目功能、教材出处或知识卡引用。这里没有检索知识库，不要声称已核验资料。
@@ -10,6 +10,10 @@ const SYSTEM = `你是陪学生看懂算法的助教，像坐在旁边一起看�
 
 function snapshot(step) {
   if (!step) return null;
+  if (step.algorithm === 'bubble-sort') {
+    return { stepNumber: step.stepIndex + 1, event: step.event, array: step.array,
+      variables: step.variables, description: step.description };
+  }
   const mid = step.variables?.mid;
   return { stepNumber: step.stepIndex + 1, event: step.event, variables: step.variables,
     comparedValue: Number.isSafeInteger(mid) && mid >= 0 && mid < step.array.length ? step.array[mid] : null };
@@ -24,19 +28,29 @@ export function buildPrompt(run, step, level, question, history = []) {
     answer: turn.answer, state: snapshot(run.steps?.[turn.stepIndex]) }));
   const code = { sourceVersion: run.sourceVersion, activeLineId: step.lineId,
     lines: (run.sourceLines || []).map(line => ({ ...line, active: line.lineId === step.lineId })) };
+  const sorting = run.algorithm === 'bubble-sort';
+  const { pass, index, sortedFrom } = step.variables || {};
+  const details = sorting ? `- 当前轮次: ${pass || '尚未开始'}
+- 当前相邻比较或交换的下标: ${index === null ? '无' : `[${index}, ${index + 1}]`}
+- 已就位区间: ${sortedFrom < arr.length ? `[${sortedFrom}, ${arr.length - 1}]` : '无'}
+- 当前步骤说明: ${step.description}`
+    : `- 目标值: ${step.target}
+- 闭区间: [${left}, ${right}]
+- mid: ${mid === null ? '未计算' : mid}
+- A[mid] 的值: ${Number.isSafeInteger(mid) && mid >= 0 && mid < arr.length ? arr[mid] : '（未计算或不可访问）'}`;
+  const previousGuide = sorting
+    ? '解释交换时对照前后两个数组，说明下标保持不变、元素改变了位置。相等元素不交换。每轮结束才确认这一轮的最大值已就位。'
+    : '解释“为什么从某个数跳到另一个数”时，对照上一步的比较值、目标、边界变化，明确元素值与下标。';
   const content = `【当前步骤客观数据】
 - 算法: ${run.algorithm || 'binary-search'}
 - 数组: [${arr.join(', ')}]
-- 目标值: ${step.target}
 - 事件: ${step.event}
-- 闭区间: [${left}, ${right}]
-- mid: ${mid === null ? '未计算' : mid}
-- A[mid] 的值: ${Number.isSafeInteger(mid) && mid >= 0 && mid < arr.length ? arr[mid] : '（未计算或不可访问）'}
+${details}
 - 步骤序号（从1开始）: ${step.stepIndex + 1}
 
 【上一步的服务端快照，不是当前状态】
 ${JSON.stringify(snapshot(run.steps?.[step.stepIndex - 1]))}
-解释“为什么从某个数跳到另一个数”时，对照上一步的比较值、目标、边界变化，明确元素值与下标。
+${previousGuide}
 
 【页面展示代码及当前高亮行】
 ${JSON.stringify(code)}

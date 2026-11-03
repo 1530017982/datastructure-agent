@@ -11,6 +11,11 @@ function parseArray(arrayText, limit) {
 
 export function parseInput(arrayText, targetText, algorithm = 'binary-search') {
   if (algorithm === 'bubble-sort') return { array: parseArray(arrayText, 24) };
+  if (algorithm === 'custom-array') {
+    const array = parseArray(arrayText, 24);
+    if (array.some(value => value < -2147483648 || value > 2147483647)) throw new Error('自定义代码使用 32 位整数。');
+    return { array };
+  }
   const targetValue = targetText.trim();
   if (!targetValue) throw new Error('目标不能为空。');
   const target = integer(targetValue, '目标');
@@ -22,6 +27,12 @@ export function parseInput(arrayText, targetText, algorithm = 'binary-search') {
 function validVariables(step, algorithm) {
   const variables = step.variables;
   if (!variables) return false;
+  if (algorithm === 'custom-array') {
+    const { line, index, writes } = variables;
+    return typeof step.description === 'string' && Number.isInteger(line) && line > 0 && String(line) === step.lineId &&
+      Number.isInteger(writes) && writes >= 0 &&
+      (index === null || (Number.isInteger(index) && index >= 0 && index < step.array.length));
+  }
   if (algorithm === 'bubble-sort') {
     const { index, pass, sortedFrom } = variables;
     return typeof step.description === 'string' && Number.isInteger(pass) && pass >= 0 &&

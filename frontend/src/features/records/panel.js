@@ -27,7 +27,7 @@ export function createRecordsPanel(container, { store, onRetry, onClear }) {
       node.append(text('p', `你的答案：${answerText(record.question, record.answer)}；已用提示：${record.hintsUsed.length ? record.hintsUsed.join('、') : '无'}`));
       node.append(text('p', new Date(record.createdAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }), 'learning-note'));
       const details = document.createElement('details'); details.append(text('summary', '回顾题目情境与提示'));
-      details.append(text('p', contextText(record.question.context)));
+      details.append(text('p', contextText(record.question.context, record.question.topicId)));
       details.append(text('p', record.origin ? `提交时附带工作台第 ${record.origin.stepIndex + 1} 步的关联；题目仍使用上面的固定情境。` : '独立练习，提交时没有关联工作台运行。', 'learning-note'));
       for (const level of record.hintsUsed) {
         const feedback = record.feedbackByLevel[level];

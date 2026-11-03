@@ -97,7 +97,7 @@ int SequentialSentinel(SearchRecord a[], int n, int key) {
 <div class="note-formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>A</mi><mi>S</mi><msub><mi>L</mi><mtext>失败</mtext></msub><mo>=</mo><mfrac><mrow><mi>n</mi><mo stretchy="false">(</mo><mi>n</mi><mo>+</mo><mn>3</mn><mo stretchy="false">)</mo></mrow><mrow><mn>2</mn><mo stretchy="false">(</mo><mi>n</mi><mo>+</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></mfrac><mspace width="1em"/><mo stretchy="false">(</mo><mi>n</mi><mo>≥</mo><mn>1</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">ASL_{失败}=\frac{n(n+3)}{2(n+1)}\quad(n\ge1)</annotation></semantics></math></span></div>
 <p>最后两个失败间隙都需比较最后一项。不同失败概率不能直接使用此式。n=0 不比较记录，失败比较数为 0。</p>
 <h4 id="search-2" tabindex="-1">7.2.2 折半查找</h4>
-<a class="secondary page-link" href="#workbench">进入二分查找工作台 →</a>
+<a class="secondary page-link" href="#workbench?algorithm=binary-search">进入二分查找工作台 →</a>
 <h5>使用条件与闭区间写法</h5>
 <p>折半查找要求能高效随机访问，并且记录按比较关系有序；顺序存储升序表是典型场景。普通链表即使有序，找中点也要走链，不能直接获得数组版 O(log n) 的访问代价。</p>
 <pre><code class="language-cpp">// 升序数组；重复关键字时返回某一个匹配位置。

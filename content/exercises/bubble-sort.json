@@ -1,0 +1,287 @@
+[
+  {
+    "id": "bubble-q01",
+    "version": "1.0.0",
+    "topicId": "bubble-sort",
+    "sourceType": "original",
+    "type": "judgement",
+    "prompt": "这一步需要交换下标 0 和 1 的元素吗？",
+    "context": {
+      "array": [
+        5,
+        1,
+        4,
+        2
+      ],
+      "event": "compare",
+      "pass": 1,
+      "index": 0,
+      "sortedFrom": 4
+    },
+    "options": [],
+    "answer": true,
+    "hints": [
+      "看正在比较的两个元素，别看整组数组。",
+      "只有左边严格大于右边才交换。"
+    ],
+    "explanation": "左边是 5，右边是 1。5 大于 1，升序冒泡排序会交换它们。"
+  },
+  {
+    "id": "bubble-q02",
+    "version": "1.0.0",
+    "topicId": "bubble-sort",
+    "sourceType": "original",
+    "type": "choice",
+    "prompt": "交换完成后，整个数组是什么？",
+    "context": {
+      "array": [
+        5,
+        1,
+        4,
+        2
+      ],
+      "event": "compare",
+      "pass": 1,
+      "index": 0,
+      "sortedFrom": 4
+    },
+    "options": [
+      {
+        "id": "A",
+        "text": "[1, 2, 4, 5]"
+      },
+      {
+        "id": "B",
+        "text": "[1, 5, 4, 2]"
+      },
+      {
+        "id": "C",
+        "text": "[5, 4, 1, 2]"
+      }
+    ],
+    "answer": "B",
+    "hints": [
+      "这一步只影响正在比较的两个位置。",
+      "交换意味着左值和右值互换，其余元素保持原位。"
+    ],
+    "explanation": "只交换下标 0 和 1，后面的 4 和 2 不动，得到 [1, 5, 4, 2]。"
+  },
+  {
+    "id": "bubble-q03",
+    "version": "1.0.0",
+    "topicId": "bubble-sort",
+    "sourceType": "original",
+    "type": "value",
+    "prompt": "做完这次比较，第一轮结束时刚刚就位的元素下标是多少？",
+    "context": {
+      "array": [
+        1,
+        4,
+        2,
+        5
+      ],
+      "event": "compare",
+      "pass": 1,
+      "index": 2,
+      "sortedFrom": 4
+    },
+    "options": [],
+    "answer": 3,
+    "hints": [
+      "题目问下标，不问元素值。",
+      "从左到右扫完一轮，本轮范围的最大值在该范围最右端。"
+    ],
+    "explanation": "第一轮把最大值 5 推到最右端，下标从 0 开始，所以它的下标是 3。"
+  },
+  {
+    "id": "bubble-q04",
+    "version": "1.0.0",
+    "topicId": "bubble-sort",
+    "sourceType": "original",
+    "type": "judgement",
+    "prompt": "当前比较的两个元素相等，程序仍会交换它们。",
+    "context": {
+      "array": [
+        2,
+        2,
+        3
+      ],
+      "event": "compare",
+      "pass": 1,
+      "index": 0,
+      "sortedFrom": 3
+    },
+    "options": [],
+    "answer": false,
+    "hints": [
+      "看清比较条件里有没有等号。",
+      "代码使用严格大于，只有左值更大才交换。"
+    ],
+    "explanation": "两者相等时不满足左值大于右值的条件，因此不会交换。这也使相等元素保持原有相对顺序。"
+  },
+  {
+    "id": "bubble-q05",
+    "version": "1.0.0",
+    "topicId": "bubble-sort",
+    "sourceType": "original",
+    "type": "choice",
+    "prompt": "按升序规则完成这次相邻比较后，数组是什么？",
+    "context": {
+      "array": [
+        -1,
+        -3,
+        2
+      ],
+      "event": "compare",
+      "pass": 1,
+      "index": 0,
+      "sortedFrom": 3
+    },
+    "options": [
+      {
+        "id": "A",
+        "text": "[-1, -3, 2]"
+      },
+      {
+        "id": "B",
+        "text": "[-1, 2, -3]"
+      },
+      {
+        "id": "C",
+        "text": "[-3, -1, 2]"
+      }
+    ],
+    "answer": "C",
+    "hints": [
+      "在数轴上看 -1 和 -3 谁更靠右。",
+      "升序要求较小值在左边。负数也按数值大小比较。"
+    ],
+    "explanation": "-1 大于 -3，所以前两项互换，得到 [-3, -1, 2]。"
+  },
+  {
+    "id": "bubble-q06",
+    "version": "1.0.0",
+    "topicId": "bubble-sort",
+    "sourceType": "original",
+    "type": "value",
+    "prompt": "第一轮只完成了第一次比较。下一次比较的左下标是多少？",
+    "context": {
+      "array": [
+        1,
+        5,
+        4,
+        2
+      ],
+      "event": "swap",
+      "pass": 1,
+      "index": 0,
+      "sortedFrom": 4
+    },
+    "options": [],
+    "answer": 1,
+    "hints": [
+      "当前这对相邻元素的左下标是 0。",
+      "每比较完一对相邻元素，内层循环的 i 加 1。"
+    ],
+    "explanation": "第一次比较的是 0 和 1。内层循环让 i 加 1，所以下一对是 1 和 2。"
+  },
+  {
+    "id": "bubble-q07",
+    "version": "1.0.0",
+    "topicId": "bubble-sort",
+    "sourceType": "original",
+    "type": "value",
+    "prompt": "第二轮结束后，有几个元素已经确认就位？",
+    "context": {
+      "array": [
+        1,
+        2,
+        4,
+        5
+      ],
+      "event": "pass-end",
+      "pass": 2,
+      "index": null,
+      "sortedFrom": 2
+    },
+    "options": [],
+    "answer": 2,
+    "hints": [
+      "从标出的已就位区间计数。",
+      "闭区间内的元素数是右下标减左下标再加 1。"
+    ],
+    "explanation": "已就位区间是下标 2 到 3，共两个元素。数组看起来已有序，但当前版本仍会完成剩余轮次。"
+  },
+  {
+    "id": "bubble-q08",
+    "version": "1.0.0",
+    "topicId": "bubble-sort",
+    "sourceType": "original",
+    "type": "value",
+    "prompt": "单元素数组需要做几次相邻比较？",
+    "context": {
+      "array": [
+        7
+      ],
+      "event": "init",
+      "pass": 0,
+      "index": null,
+      "sortedFrom": 1
+    },
+    "options": [],
+    "answer": 0,
+    "hints": [
+      "至少要有两个元素才能组成相邻的一对。",
+      "外层循环从 n - 1 开始，只在 end 大于 0 时进入。"
+    ],
+    "explanation": "单元素没有相邻元素，外层循环也不会进入，因此比较 0 次。"
+  },
+  {
+    "id": "bubble-q09",
+    "version": "1.0.0",
+    "topicId": "bubble-sort",
+    "sourceType": "original",
+    "type": "judgement",
+    "prompt": "数组为空时，排序会访问 A[0]。",
+    "context": {
+      "array": [],
+      "event": "init",
+      "pass": 0,
+      "index": null,
+      "sortedFrom": 0
+    },
+    "options": [],
+    "answer": false,
+    "hints": [
+      "先判断数组里是否存在下标 0。",
+      "没有待比较的相邻元素时，内层比较不会执行。"
+    ],
+    "explanation": "空数组没有可比较元素，外层循环不会进入，不会读取 A[0]。"
+  },
+  {
+    "id": "bubble-q10",
+    "version": "1.0.0",
+    "topicId": "bubble-sort",
+    "sourceType": "original",
+    "type": "value",
+    "prompt": "按工作台当前代码，这个已经有序的三元素数组共做几次相邻比较？",
+    "context": {
+      "array": [
+        1,
+        2,
+        3
+      ],
+      "event": "init",
+      "pass": 0,
+      "index": null,
+      "sortedFrom": 3
+    },
+    "options": [],
+    "answer": 3,
+    "hints": [
+      "分轮数相邻比较次数，不要把交换次数算进去。",
+      "第一轮 end 为 2，内层比较两次；下一轮 end 为 1。"
+    ],
+    "explanation": "当前代码没有提前退出。第一轮比较两次，第二轮比较一次，合计 3 次。"
+  }
+]
