@@ -8,6 +8,7 @@
 |---|---|---|
 | GET /api/health | 200；ok=true、stage=scaffold、implemented 包含 static-page/health/runs/exercises/agent/knowledge；mode 为 disabled/mock/deepseek，modelCallsEnabled 按实际模式返回 | 04 |
 | POST /api/algorithms/binary-search/runs | 200，创建并返回完整 run | 04 |
+| POST /api/algorithms/bubble-sort/runs | 200，创建并返回冒泡排序 run | 01 |
 | GET /api/runs/:runId | 200，返回同一完整 run | 04 |
 | GET /api/runs/:runId/steps/:stepIndex | 200，返回 `{runId,step}` | 04 |
 | GET /api/exercises | 200，返回 `{exercises:[...]}`，当前10题 | 04+06 |
@@ -37,6 +38,8 @@
 闭区间、零下标、mid 向下取整；重复值返回实际命中的任一下标，不承诺首个或末个。run 存在服务进程内存 Map 中，保留1小时，每60秒清理；查询过期 run 也会删除。重启丢失，没有持久化或容量上限策略。输入数组位于每个 step 的 array 中，顶层没有单独 array/target 字段。
 
 stepIndex 使用十进制非负整数字符串；超出已存在 run 的步骤范围返回400 STEP_OUT_OF_RANGE。负数、小数和非数字路径不匹配当前路由，返回404 NOT_FOUND。不存在或已过期的 run 返回404 RUN_NOT_FOUND。
+
+冒泡排序使用 `{"array":[5,1,4,2]}` 创建运行。接受 0 到 24 个安全整数，允许乱序、负数和重复值。它共用运行和步骤查询接口，`algorithm` 为 `bubble-sort`，`sourceVersion` 为 `bubble-c-v1`，最终 `result` 为升序数组。每一步保存当前 `array`、说明 `description` 和 `variables: {pass, index, sortedFrom}`。其中 `index` 是相邻比较的左下标，无比较时为 `null`，`sortedFrom` 起为已就位区间。事件为 `init`、`compare`、`swap`、`pass-end`、`sorted`。步骤问答和现有过程练习仍面向二分查找。
 
 ## 题目与判分
 

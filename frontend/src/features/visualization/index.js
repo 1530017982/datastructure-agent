@@ -60,6 +60,7 @@ function prefersReducedMotion() {
  */
 export function describeStep(step) {
   if (!step) return '无步骤数据';
+  if (step.algorithm === 'bubble-sort') return `第 ${step.stepIndex + 1} 步：${step.description}`;
   const { array = [], target, variables = {}, event, done, result } = step;
   const { left, right, mid } = variables;
   const parts = [`第 ${step.stepIndex + 1} 步：${EVENT_TEXT[event] ?? event}`];
@@ -87,6 +88,7 @@ export function describeStep(step) {
  */
 export function describeTransition(previous, current) {
   if (!current) return '';
+  if (current.algorithm === 'bubble-sort') return current.description;
   const { array = [], target, variables = {}, event, result } = current;
   const { left, right, mid } = variables;
   const last = array.length - 1;
@@ -273,13 +275,15 @@ function buildLegend() {
  *   默认挂在模块自己的根节点内。dev 页把它挂到视口右上角的浮层容器：
  *   因为视口的平移/缩放层带 transform，会变成绝对定位后代的包含块，
  *   所以解释面板必须挂在被变换的图层【外面】才能钉在角落里不动。
+ * @param {Function} [options.frameBuilder] 可替换数组帧的绘制。返回 null 时使用原版帧。
  * @returns {{showStep: Function, getStep: Function, playEnterAnimation: Function, destroy: Function}}
  */
 export function createVisualization(container, {
   run,
   legend: withLegend = false,
   dots: withDots = false,
-  explainContainer = null
+  explainContainer = null,
+  frameBuilder = buildFrame
 } = {}) {
   // [02 unsupports] container 由 02 的装配层提供（正式页面是 02 的 #visualization-panel）；
   // 03 只往里渲染，不创建、不移动、不删除宿主的容器。
@@ -356,7 +360,8 @@ export function createVisualization(container, {
   function render(step, { enter = false } = {}) {
     const reduced = prefersReducedMotion();
     const before = enter ? null : measurePointers(previousPointers);
-    const frame = buildFrame(step, { previous: previousStep, enter });
+    const options = { previous: previousStep, enter, reduced };
+    const frame = frameBuilder(step, options) ?? buildFrame(step, options);
 
     track.replaceChildren(...frame.cells);
     track.dataset.anim = !step ? 'none' : step.array && step.array.length === 0 ? 'empty' : step.event;

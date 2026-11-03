@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { handleCreateRun, handleGetRun, handleGetStep } from './routes/runs.js';
+import { handleCreateRun, handleCreateBubbleRun, handleGetRun, handleGetStep } from './routes/runs.js';
 import { handleGetExercises, handleCheckExercise } from './routes/exercises.js';
 import { getUsage } from './agent/rate-limit.js';
 import { knowledgeResponse } from './knowledge/retrieve.js';
@@ -52,6 +52,9 @@ const server = createServer(async (request, response) => {
     if (pathname === '/api/algorithms/binary-search/runs' && method === 'POST') {
       const body = await readBody(request);
       return handleCreateRun(request, response, body);
+    }
+    if (pathname === '/api/algorithms/bubble-sort/runs' && method === 'POST') {
+      return handleCreateBubbleRun(response, await readBody(request));
     }
 
     const stepMatch = pathname.match(/^\/api\/runs\/([^/]+)\/steps\/(\d+)$/);

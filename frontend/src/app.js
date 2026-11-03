@@ -8,6 +8,10 @@ import { createAgentChat } from './features/agent/panel.js';
 import { createWorkbenchUI } from './features/workbench/ui.js';
 
 const $ = id => document.getElementById(id);
+const algorithmPicker = $('algorithm-select');
+const isSorting = () => algorithmPicker.value === 'bubble-sort';
+const variableIds = ['varLeft', 'varRight', 'varMid', 'varValue'];
+const binaryHelp = $('input-help').textContent;
 let run = null, playback = null, viz = null, pending = null, generation = 0;
 let currentContext = null;
 const speedMs = 1000;
@@ -15,6 +19,7 @@ const ui = createWorkbenchUI({ onNavigate(page) { if (page !== 'workbench' && pl
 function mountWindow() {
   $('visualization-panel').replaceChildren();
   viz = createVizWindow($('visualization-panel'), {
+    algorithm: algorithmPicker.value,
     onSeek(index) { playback?.seek(index); },
     onTransport(action) { playback?.[action]?.(); }
   });
@@ -32,7 +37,7 @@ const exercises = createExercises($('exercise-mount'), {onBeforeAnswer:()=>playb
 const unsubscribeExercises = subscribeStep(exercises.setContext);
 function publish(context) {
   currentContext = context;
-  agent.setContext(context);
+  agent.setContext(isSorting() ? null : context);
   ui.setContext(context);
   $('exercise-context').textContent = context ? `当前运行：第 ${context.stepIndex+1} 步 / 共 ${context.total} 步。题目仍使用自己的固定情境。` : '当前无工作台运行，可独立完成固定题练习。';
   const host = $('exercise-mount');
@@ -48,8 +53,9 @@ function clearRun() {
   sourceNodes.clear(); $('code-lines').replaceChildren();
   const placeholder=document.createElement('li');placeholder.textContent='开始分析后显示对应源码。';$('code-lines').append(placeholder);
   mountWindow();
-  for(const id of ['varLeft','varRight','varValue'])$(id).textContent='—';
-  $('varMid').textContent='未计算';$('stepText').textContent='尚未开始';$('step-description').textContent='';$('source-version').textContent='C/C++';
+  for (const id of variableIds) $(id).textContent = '—';
+  if (!isSorting()) $('varMid').textContent = '未计算';
+  $('stepText').textContent='尚未开始';$('step-description').textContent='';$('source-version').textContent='C/C++';
   $('startBtn').disabled=false;$('startBtn').textContent='开始分析';$('run-form').removeAttribute('aria-busy');
   publish(null);
 }
@@ -57,9 +63,11 @@ function render(state) {
   if(!run || state.runId!==run.runId || !state.step)return;
   const step=state.step;
   viz.setStep(step, state);
-  $('varLeft').textContent=step.variables.left;$('varRight').textContent=step.variables.right;
-  $('varMid').textContent=step.variables.mid===null?'未计算':step.variables.mid;
-  $('varValue').textContent=step.variables.mid===null?'—':step.array[step.variables.mid];
+  const { left, right, mid, pass, index, sortedFrom } = step.variables;
+  const values = run.algorithm === 'bubble-sort'
+    ? [pass || '—', index ?? '—', index === null ? '—' : index + 1, step.array.length - sortedFrom]
+    : [left, right, mid ?? '未计算', mid === null ? '—' : step.array[mid]];
+  variableIds.forEach((id, i) => { $(id).textContent = values[i]; });
   $('stepText').textContent=`第 ${state.stepIndex+1} 步 / 共 ${state.total} 步`;
   $('step-description').textContent=describeStep(step);
   for(const [lineId,node] of sourceNodes){const active=lineId===step.lineId;node.classList.toggle('active',active);if(active)node.setAttribute('aria-current','step');else node.removeAttribute('aria-current');}
@@ -67,11 +75,12 @@ function render(state) {
 }
 async function start(event) {
   event.preventDefault(); clearRun();
-  let input;try{input=parseInput($('arrInput').value,$('targetInput').value);}catch(error){message(error.message,true);return;}
+  const algorithm = algorithmPicker.value;
+  let input;try{input=parseInput($('arrInput').value,$('targetInput').value,algorithm);}catch(error){message(error.message,true);return;}
   const ticket=generation;const controller=new AbortController();pending=controller;
   message('正在生成执行步骤…');$('startBtn').disabled=true;$('startBtn').textContent='分析中…';$('run-form').setAttribute('aria-busy','true');
   try{
-    const result=validateRun(await createRun(input,controller.signal));
+    const result=validateRun(await createRun(input,controller.signal,algorithm),algorithm);
     if(ticket!==generation)return;
     run=result;$('code-lines').replaceChildren();
     for(const line of run.sourceLines){const node=document.createElement('li');node.textContent=line.text;node.dataset.lineId=line.lineId;sourceNodes.set(line.lineId,node);$('code-lines').append(node);}
@@ -84,8 +93,24 @@ async function start(event) {
   finally{if(ticket===generation){pending=null;$('startBtn').disabled=false;$('startBtn').textContent='开始分析';$('run-form').removeAttribute('aria-busy');}}
 }
 $('run-form').addEventListener('submit',start);
+algorithmPicker.addEventListener('change', () => {
+  const sorting = isSorting();
+  $('workbench-heading').textContent = sorting ? '冒泡排序' : '二分查找';
+  $('source-file').textContent = sorting ? 'bubble_sort.cpp' : 'binary_search.cpp';
+  $('array-label').textContent = sorting ? '待排序数组' : '有序数组';
+  $('arrInput').value = '';
+  $('arrInput').placeholder = sorting ? '例如：5, 1, 4, 2' : '例如：1, 3, 5, 7, 9';
+  $('target-field').hidden = sorting;
+  $('run-form').classList.toggle('sorting-input', sorting);
+  $('input-help').textContent = sorting ? '最多 24 个安全整数，逗号分隔；留空为空数组。允许负数和重复值。' : binaryHelp;
+  const labels = sorting ? ['轮次', 'i', 'i + 1', '已就位'] : ['left', 'right', 'mid', 'A[mid]'];
+  variableIds.forEach((id, i) => { $(id).previousElementSibling.textContent = labels[i]; });
+  ui.setTutorAvailable(!sorting);
+  clearRun();
+  message('');
+});
 for(const id of ['arrInput','targetInput'])$(id).addEventListener('input',()=>{const old=Boolean(run||pending);clearRun();message(old?'输入已更改，请重新开始分析。':'');});
-$('fillDemo').addEventListener('click',()=>{clearRun();$('arrInput').value='1,3,5,7,9';$('targetInput').value='7';message('示例已填入，点击开始分析。');});
+$('fillDemo').addEventListener('click',()=>{clearRun();$('arrInput').value=isSorting()?'5,1,4,2':'1,3,5,7,9';$('targetInput').value='7';message('示例已填入，点击开始分析。');});
 $('visualization-panel').addEventListener('keydown',event=>{
   if(event.target.closest('input,textarea,select,button,a,[contenteditable]')||!playback)return;
   if(event.key==='ArrowLeft'){event.preventDefault();playback.prev();}

@@ -454,6 +454,23 @@
 .bsviz-anim-found { animation: bsviz-found-pop 540ms cubic-bezier(.22, .68, .32, 1) both; }
 .bsviz-anim-range { animation: bsviz-range-flash 320ms ease-out both; }
 
+/* prototype01 一维数组视图 */
+.prototype-array { display: block; flex: none; overflow: visible; }
+.prototype-array text { fill: var(--viz-index-text); font-size: 10px; text-anchor: middle; }
+.prototype-array-axis { fill: none; stroke: var(--viz-index-text); }
+.prototype-array-cell rect { fill: var(--viz-range-bg); stroke: var(--viz-range-edge); }
+.prototype-array-cell .prototype-array-value { fill: var(--viz-text); font-size: 12px; font-weight: 650; }
+.prototype-array-cell.is-excluded { opacity: .4; }
+.prototype-array-cell.is-mid rect { fill: var(--viz-ptr-m-bg); stroke: var(--viz-mid-edge); stroke-width: 2; }
+.prototype-array-cell.is-found rect { fill: var(--viz-found-bg); stroke: var(--viz-found-edge); stroke-width: 3; }
+.prototype-array-cell.is-sorted rect { fill: var(--viz-found-bg); stroke: var(--viz-found-edge); }
+.prototype-array-cell.is-comparing rect { fill: var(--viz-ptr-r-bg); stroke: var(--viz-ptr-r-fg); stroke-width: 2; }
+.prototype-marker { --marker-text: var(--viz-ptr-l-fg); --marker-bg: var(--viz-ptr-l-bg); }
+.prototype-marker.is-right { --marker-text: var(--viz-ptr-r-fg); --marker-bg: var(--viz-ptr-r-bg); }
+.prototype-marker.is-mid { --marker-text: var(--viz-ptr-m-fg); --marker-bg: var(--viz-ptr-m-bg); }
+.prototype-marker rect { fill: var(--marker-bg); stroke: var(--marker-text); }
+.prototype-marker text { fill: var(--marker-text); font-weight: 700; }
+
 /* 无障碍：用户要求减少动态效果时，只保留极短过渡 */
 @media (prefers-reduced-motion: reduce) {
   .bsviz *,

@@ -4,6 +4,7 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
   const lifetime = new AbortController();
   const listen = (node, type, fn) => node.addEventListener(type, fn, { signal: lifetime.signal });
   const panel = $('tutor-window'), ball = $('tutor-toggle'), sidebar = $('sidebar-toggle');
+  let tutorAvailable = true;
   const uiKey = 'datastructure-agent:workbench-ui:v1';
   const nav = document.querySelector('.sidebar nav');
   function syncNavIndicator() {
@@ -120,7 +121,7 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
     currentPage = name; document.body.dataset.page = name;
     if (innerWidth <= 540) { document.body.dataset.sidebarCollapsed = 'true'; updateSidebar(); }
     $('page-breadcrumb').textContent = pages[name]; document.title = pages[name] + ' · 看懂每一步';
-    ball.hidden = name !== 'workbench';
+    ball.hidden = name !== 'workbench' || !tutorAvailable;
     if (pageChanged) document.querySelector('[data-page-view="'+name+'"] h1')?.focus({preventScroll:true});
     window.scrollTo(0,0); queuePosition();
     if (name === 'knowledge') {
@@ -186,6 +187,11 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
   navigate(...route());
   return {
     navigate,
+    setTutorAvailable(available) {
+      tutorAvailable = available;
+      if (!available && open) show(false, false);
+      ball.hidden = currentPage !== 'workbench' || !available;
+    },
     setContext(context) { $('tutor-prompt').textContent = prompts[context?.step?.event] || prompts.init; queuePosition(); },
     destroy() { lifetime.abort(); noteRequest?.abort(); navObserver.disconnect(); delete nav.dataset.indicatorReady; nav.classList.remove('indicator-animated'); layoutObserver.disconnect(); if (positionFrame !== null) cancelAnimationFrame(positionFrame); }
   };
