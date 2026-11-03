@@ -1,5 +1,3 @@
-import { requestJSON } from '../../services/api.js';
-
 // Layout state never owns or changes the algorithm's playback cursor.
 export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
   const $ = id => document.getElementById(id);
@@ -21,7 +19,9 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
     }
   }
   const navObserver = new ResizeObserver(syncNavIndicator); navObserver.observe(nav);
-  let open = false, returnFocus = ball, drag = null, cardsLoaded = false, cardsBusy = false;
+  let open = false, returnFocus = ball, drag = null;
+  const notePicker = $('note-unit'), noteContent = $('note-content'), noteStatus = $('note-status');
+  let activeNote = '', renderedUnit = '', noteRequest = null;
   let positionFrame = null;
   function queuePosition() {
     if (positionFrame !== null) return;
@@ -50,35 +50,63 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
     updateSidebar();
     try { localStorage.setItem(uiKey, document.body.dataset.sidebarCollapsed === 'true' ? 'collapsed' : 'expanded'); } catch { /* Optional preference. */ }
   });
-  async function loadCards() {
-    if (cardsLoaded || cardsBusy) return;
-    cardsBusy = true; $('knowledge-status').textContent = '正在读取知识卡…'; $('knowledge-retry').hidden = true;
-    try {
-      const data = await requestJSON('/api/knowledge/cards?topicId=binary-search', { signal: lifetime.signal });
-      if (!Array.isArray(data.cards)) throw new Error('知识卡响应不完整。');
-      const nodes = data.cards.map(card => {
-        const node = document.createElement('details'), title = document.createElement('summary');
-        const body = document.createElement('p'), source = document.createElement('small');
-        title.textContent = card.title; body.textContent = card.content;
-        source.textContent = `${card.id} · ${card.sourceType === 'original' ? '项目自编' : card.sourceId} · v${card.version}`;
-        node.append(title, body, source); return node;
-      });
-      $('knowledge-cards').replaceChildren(...nodes); cardsLoaded = true;
-      $('knowledge-status').textContent = nodes.length ? `共 ${nodes.length} 张知识卡，可独立于模型阅读。` : '当前没有可用知识卡。';
-    } catch (error) {
-      if (error.name !== 'AbortError') { $('knowledge-status').textContent = `读取失败：${error.message}`; $('knowledge-retry').hidden = false; }
-    } finally { cardsBusy = false; }
+  async function showNote(unit, section) {
+    noteRequest?.abort();
+    noteStatus.hidden = true;
+    notePicker.value = unit;
+    noteContent.hidden = !unit || renderedUnit !== unit;
+    if (!unit) return;
+    if (renderedUnit !== unit) {
+      const request = new AbortController();
+      noteRequest = request;
+      try {
+        const response = await fetch('/assets/notes/' + encodeURIComponent(unit) + '.html', { signal: request.signal });
+        if (!response.ok) throw new Error('笔记读取失败');
+        const html = await response.text();
+        if (request.signal.aborted) return;
+        // This fragment is generated from the repository's Markdown during build.
+        noteContent.innerHTML = html;
+        renderedUnit = unit;
+        noteContent.hidden = false;
+      } catch {
+        if (request.signal.aborted) return;
+        noteContent.hidden = true;
+        noteStatus.textContent = '笔记读取失败，请重新选择单元。';
+        noteStatus.hidden = false;
+        return;
+      }
+    }
+    if (section) {
+      const heading = noteContent.querySelector('#' + CSS.escape(section));
+      heading?.focus({ preventScroll: true });
+      heading?.scrollIntoView({ block: 'start' });
+    }
   }
-  const pages = { catalog: '课程目录', workbench: '算法工作台', knowledge: '知识与辅导', practice: '过程练习', records: '错题与记录' };
+  const pages = { catalog: '课程目录', workbench: '算法工作台', knowledge: '学习笔记', practice: '过程练习', records: '错题与记录' };
   let currentPage = null;
   function route() {
-    const hash = location.hash.slice(1);
-    return ({ 'exercise-panel': 'practice', 'records-mount': 'records', 'tutor-knowledge-view': 'knowledge' })[hash] || (Object.hasOwn(pages,hash) ? hash : 'workbench');
+    const [hash, query] = location.hash.slice(1).split('?');
+    const name = ({ 'exercise-panel': 'practice', 'records-mount': 'records', 'tutor-knowledge-view': 'knowledge' })[hash] || hash;
+    const params = new URLSearchParams(query);
+    const legacyIntro = params.get('topic') === 'overview-1';
+    return [name, {
+      replace: true,
+      unit: legacyIntro ? 'intro' : params.get('unit'),
+      section: legacyIntro ? 'basics' : params.get('section')
+    }];
   }
-  function navigate(name, { replace = false } = {}) {
+  function navigate(name, { replace = false, unit = '', section = '' } = {}) {
     if (!Object.hasOwn(pages,name)) name = 'workbench';
-    if (location.hash !== '#'+name) history[replace ? 'replaceState' : 'pushState'](null,'','#'+name);
-    if (currentPage === name) return;
+    const query = new URLSearchParams();
+    if (name === 'knowledge' && unit && Array.from(notePicker.options).some(option => option.value === unit)) {
+      query.set('unit', unit);
+      if (section && /^[a-z0-9-]{1,50}$/.test(section)) query.set('section', section);
+    }
+    const hash = '#' + name + (query.size ? '?' + query : '');
+    if (location.hash !== hash) history[replace ? 'replaceState' : 'pushState'](null,'',hash);
+    const pageChanged = currentPage !== name;
+    if (!pageChanged && (name !== 'knowledge' || activeNote === hash)) return;
+    if (name !== 'knowledge') noteRequest?.abort();
     document.querySelector('.vizwin[data-full="true"] [data-viz-full]')?.click();
     onNavigate(name);
     if (open) show(false, false);
@@ -93,16 +121,19 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
     if (innerWidth <= 540) { document.body.dataset.sidebarCollapsed = 'true'; updateSidebar(); }
     $('page-breadcrumb').textContent = pages[name]; document.title = pages[name] + ' · 看懂每一步';
     ball.hidden = name !== 'workbench';
-    if (name === 'knowledge') loadCards();
-    document.querySelector('[data-page-view="'+name+'"] h1')?.focus({preventScroll:true});
+    if (pageChanged) document.querySelector('[data-page-view="'+name+'"] h1')?.focus({preventScroll:true});
     window.scrollTo(0,0); queuePosition();
+    if (name === 'knowledge') {
+      activeNote = hash;
+      showNote(query.get('unit') ?? '', query.get('section'));
+    }
   }
   for (const link of document.querySelectorAll('[data-page-link]')) listen(link, 'click', event => {
     if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     event.preventDefault(); navigate(link.dataset.pageLink);
   });
-  listen(window,'hashchange',()=>navigate(route(),{replace:true}));
-  listen(window,'popstate',()=>navigate(route(),{replace:true}));
+  listen(window,'hashchange',()=>navigate(...route()));
+  listen(window,'popstate',()=>navigate(...route()));
 
   function clampPosition() {
     if (!open || !panel.style.left) return;
@@ -123,7 +154,7 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
   listen(document, 'pointerdown', event => {
     if (open && !drag && !panel.contains(event.target) && !ball.contains(event.target)) show(false, false);
   });
-  listen($('knowledge-retry'), 'click', loadCards);
+  listen(notePicker, 'change', () => navigate('knowledge', { unit: notePicker.value }));
   listen(panel, 'keydown', event => {
     if (event.key === 'Escape' && !document.body.classList.contains('is-viz-full')) { event.preventDefault(); event.stopPropagation(); show(false); }
   });
@@ -152,10 +183,10 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
     found: '如果数组有重复值，这次一定返回第一个位置吗？',
     'not-found': '哪个边界条件说明目标已经不在数组中了？'
   };
-  navigate(route(), {replace:true});
+  navigate(...route());
   return {
     navigate,
     setContext(context) { $('tutor-prompt').textContent = prompts[context?.step?.event] || prompts.init; queuePosition(); },
-    destroy() { lifetime.abort(); navObserver.disconnect(); delete nav.dataset.indicatorReady; nav.classList.remove('indicator-animated'); layoutObserver.disconnect(); if (positionFrame !== null) cancelAnimationFrame(positionFrame); }
+    destroy() { lifetime.abort(); noteRequest?.abort(); navObserver.disconnect(); delete nav.dataset.indicatorReady; nav.classList.remove('indicator-animated'); layoutObserver.disconnect(); if (positionFrame !== null) cancelAnimationFrame(positionFrame); }
   };
 }

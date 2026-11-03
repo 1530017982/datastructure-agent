@@ -13,6 +13,11 @@
     "check": "node scripts/check.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:backend": "node tests/backend-acceptance.mjs",
-    "check:content": "node content/validate.mjs"
+    "check:content": "node content/validate.mjs",
+    "build:notes": "node scripts/build-notes.mjs"
+  },
+  "devDependencies": {
+    "katex": "0.17.0",
+    "marked": "17.0.5"
   }
 }
