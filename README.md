@@ -32,7 +32,7 @@ npm start
 
 ### 自定义代码
 
-在 Windows x64 上，把 Open Watcom 的 `builder` 和 `owcpp` 目录放到 `third_party/open-watcom/`。其中需包含 `builder/build/binbuild/bwcc386.exe`、`owcpp/out/wpp386.exe`，以及 `owcpp/boot` 中的 Windows 链接器、头文件和库。
+Windows x64 所需的 Open Watcom 编译器、链接器、头文件和库随仓库提供。克隆或更新仓库后，用 `npm start` 启动即可。工具链来源和许可证见 [Open Watcom 说明](third_party/open-watcom/README.md)。
 
 打开[自定义代码工作台](http://127.0.0.1:3000/#workbench?algorithm=custom-array)，点「填入示例」，编辑 `void sort(int a[], int n)` 后点「编译并运行」。支持整数、数组读写、条件和循环。
 

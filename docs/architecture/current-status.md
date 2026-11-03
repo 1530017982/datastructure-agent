@@ -10,7 +10,7 @@
 | 五页导航 | 课程目录、算法工作台、学习笔记、过程练习、错题与记录；支持地址直达及浏览器历史导航 | [工作台说明](../../frontend/src/features/workbench/README.md) |
 | 课程目录与笔记 | 八章、71 个目录入口。二分查找和冒泡排序的笔记可打开并选中对应算法，默认启动进入工作台 | [PR #38](https://github.com/tw1l1ghtcc/datastructure-agent/pull/38)、[PR #42](https://github.com/tw1l1ghtcc/datastructure-agent/pull/42) |
 | 动画与代码 | 默认 SVG 柱形数组视图，源码和白底动画并排，本步解释背景透明。二分查找可用 `?viz=legacy` 回到旧版；时间轴、回退、平移缩放和全屏共用 | [动画说明](../../frontend/src/features/visualization/README.md) |
-| 自定义代码 | Windows x64 本机使用 Open Watcom 编译受限 C/C++ 数组函数，按实际数组写入回放并高亮源码；工具链需单独准备 | [本地配置](../../README.md#自定义代码)、[API 契约](api-contract.md) |
+| 自定义代码 | Windows x64 本机使用随仓库提供的 Open Watcom 编译受限 C/C++ 数组函数，按实际数组写入回放并高亮源码 | [本地使用](../../README.md#自定义代码)、[API 契约](api-contract.md) |
 | 步骤聊天 | 二分查找和冒泡排序可针对当前步骤提问。携带当前和上一步、源码及最近最多 10 轮；默认 DeepSeek Flash，显式 Mock 优先 | [Agent 说明](../../backend/src/agent/README.md) |
 | 聊天窗口 | 接近整屏高度；点击外部、缩小键或Escape收起，保留草稿/历史/等待中的回答；未运行或等待回复时也能写草稿，发送需有效运行且无进行中的请求 | PR #29/#30；对话球回弹PR #31已撤回并关闭 |
 | 独立知识接口 | 保留自编二分查找知识卡的目录和查询；网页「学习笔记」读取章节笔记 | [知识接口](../../backend/src/knowledge/README.md) |
