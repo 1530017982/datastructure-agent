@@ -13,4 +13,6 @@ export async function requestJSON(path, { signal, body } = {}) {
   return data;
 }
 
-export function createRun(input, signal) { return requestJSON('/api/algorithms/binary-search/runs', { body: input, signal }); }
+export function createRun(input, signal, algorithm = 'binary-search') {
+  return requestJSON(`/api/algorithms/${algorithm}/runs`, { body: input, signal });
+}

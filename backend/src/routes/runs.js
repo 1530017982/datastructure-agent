@@ -1,5 +1,6 @@
 // backend/src/routes/runs.js
 import { generateSteps } from '../../../shared/algorithms/binarySearch.js';
+import { generateBubbleSteps } from '../../../shared/algorithms/bubbleSort.js';
 import { createRun, getRun } from '../runs/store.js';
 
 
@@ -43,6 +44,22 @@ export function handleCreateRun(req, res, body) {
   } catch (e) {
     sendError(res, 400, 'INVALID_INPUT', '请求体格式错误');
   }
+}
+
+export function handleCreateBubbleRun(res, body) {
+  let input;
+  try {
+    input = JSON.parse(body);
+  } catch {
+    return sendError(res, 400, 'INVALID_INPUT', '请求体格式错误');
+  }
+  const array = input?.array;
+  if (!Array.isArray(array) || array.length > 24 || !array.every(Number.isSafeInteger)) {
+    return sendError(res, 400, 'INVALID_INPUT', '数组必须包含 0 到 24 个安全整数');
+  }
+  const run = createRun({ algorithm: 'bubble-sort', ...generateBubbleSteps(array) });
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(run));
 }
 // 保留原有的 handleGetRun 和 handleGetStep ...
 

@@ -64,6 +64,9 @@ async function explain(parsedBody, ctx = {}) {
   if (!run) {
     return { status: 404, body: { error: { code: 'RUN_NOT_FOUND', message: 'run 不存在或已过期，请重新运行算法' } } };
   }
+  if (run.algorithm === 'bubble-sort') {
+    return { status: 400, body: { error: { code: 'INVALID_INPUT', message: '步骤问答目前支持二分查找。' } } };
+  }
   const steps = Array.isArray(run.steps) ? run.steps : [];
   if (idx >= steps.length) {
     return { status: 400, body: { error: { code: 'STEP_OUT_OF_RANGE', message: `stepIndex 越界，该 run 共 ${steps.length} 步（0-${steps.length - 1}）` } } };

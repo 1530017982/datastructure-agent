@@ -5,6 +5,7 @@
  */
 
 import { createVisualization } from './index.js';
+import { buildPrototypeArrayFrame } from './prototype-array.js';
 
 
 const TEMPLATE = `
@@ -65,6 +66,7 @@ const TEMPLATE = `
 
 export function createVizWindow(host, {
   run = null,
+  algorithm = run?.algorithm ?? 'binary-search',
   onSeek = null,
   onTransport = null
 } = {}) {
@@ -73,7 +75,16 @@ export function createVizWindow(host, {
   const root = document.createElement('section');
   root.className = 'win vizwin';
   root.dataset.win = 'viz';
+  const sorting = algorithm === 'bubble-sort';
+  const useLegacy = !sorting && new URLSearchParams(window.location.search).get('viz') === 'legacy';
   root.innerHTML = TEMPLATE;
+  if (sorting) {
+    root.querySelector('.win-sub').textContent = '冒泡排序 · 数组视图';
+    root.querySelector('.vh-sub').textContent = '冒泡排序 · 升序';
+    const legend = root.querySelector('.viewport-legend');
+    legend.setAttribute('aria-label', '排序图例');
+    legend.innerHTML = '<span><b class="legend-mid">绿</b> 已就位</span><span><b class="legend-right">橙</b> 比较或交换</span>';
+  }
   host.append(root);
 
   // 防御：若上一个窗口异常销毁、body 上残留了全屏类，这里兜一次，保证"新窗口不是全屏"
@@ -294,14 +305,18 @@ export function createVizWindow(host, {
     if (!nextRun) return;
     if (viz) viz.destroy();
     scene.replaceChildren();
-    viz = createVisualization(vizHost, { run: nextRun, legend: false, dots: false, explainContainer: explainHost });
+    viz = createVisualization(vizHost, {
+      run: nextRun,
+      explainContainer: explainHost,
+      frameBuilder: useLegacy ? undefined : buildPrototypeArrayFrame,
+    });
     renderRuler(nextRun.steps.length);
     queueFit();
   }
 
   function setStep(step, nextState = {}) {
     state = { ...state, ...nextState };
-    if (viz && step) viz.showStep(step);
+    if (viz && step && (useLegacy || viz.getStep() !== step)) viz.showStep(step);
     const active = Boolean(currentRun && state.total > 0);
     const play = $('#playBtn');
     const label = state.playing ? '暂停' : '播放';

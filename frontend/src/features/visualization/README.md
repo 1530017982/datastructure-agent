@@ -4,6 +4,7 @@
 命中/未找到结果，以及空数组、单元素、`mid=null`、空区间这些边界。整帧重渲染，所以回看是真恢复。
 
 - 入口：`createVisualization(container, { run, legend, dots, explainContainer })`
+- 工作台默认用从 `prototype01` 移植的 SVG 柱形数组视图，支持二分查找和冒泡排序。启动服务后，访问 `/?viz=legacy#workbench` 可恢复二分查找的旧版卡片动画，移除 `viz=legacy` 可切回新版。
   → `{ showStep, getStep, playEnterAnimation, destroy }`（`showStep(null)` 是明确的空态，不抛错）
 - 样式：同目录 `visualization.css`（浅色默认 token `--viz-*`，宿主必须引）
 - 正式入口：npm start后访问工作台。window.js/window.css从03原dev-viz-window恢复并按用户确认布局调整，已接04真实run及唯一播放指针；原完整dev页面及Mock数据继续移除。
