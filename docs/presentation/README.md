@@ -1,5 +1,5 @@
 # 答辩与博客（成员10）
 
-PPT结构和演示脚本见同目录文件；博客模板需要真实成员、合照、愿景、调研和效果。成员已登记且PR #19有PPT草稿；最终博客、演练及真实效果材料仍须按实际证据补齐，不能将草稿计为已合并成品。现行演示行为见[脚本](demo-script.md)及[当前状态](../architecture/current-status.md)。
+展示材料见 [PPT 提纲](ppt-outline.md)、[演示脚本](demo-script.md)和[博客稿](blog-template.md)。[PR #36](https://github.com/tw1l1ghtcc/datastructure-agent/pull/36) 已合并，旧 PPT 草稿 PR #19 已关闭。仓库合并与课程平台提交分别记录。演示新功能前，先对照[当前项目状态](../architecture/current-status.md)。
 
-10月22日材料和录屏齐全，23日至24日答辩前修复与演练。24日演讲10分钟+答辩6分钟，25日团队博客提交一篇。
+第一次作业原安排为 10 分钟演讲、6 分钟答辩及一篇团队博客。第二次作业的墨刀原型和两份设计说明书见[仓库 README](../../README.md#09原型预览)。

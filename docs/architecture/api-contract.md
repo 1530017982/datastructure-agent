@@ -1,6 +1,6 @@
 # API 契约 v1
 
-更新：2026-10-23；实现核对至main `1bd0d74`（PR #33）。算法接口沿用PR #10，题目版本校验已接入；聊天按PR #27直接调用模型，独立知识查询接口继续保留。同源前后端，请求使用 JSON 与 `Content-Type: application/json`。本页区分已实现行为与后续计划；消费者联调状态见[接口对齐清单](contract-alignment.md)。
+更新：2026-11-03。核对至 `main` 的 `8a909c2`（PR #42）。同源前后端，请求使用 JSON 与 `Content-Type: application/json`。联调状态见[接口对齐清单](contract-alignment.md)。
 
 ## 当前接口
 
@@ -20,7 +20,7 @@
 
 ## 运行与步骤
 
-创建输入：`{"array":[1,3,5,7,9],"target":7}`。
+二分查找的创建输入为 `{"array":[1,3,5,7,9],"target":7}`。
 
 - array 为非递减安全整数数组，最多100项；target 为安全整数。不接受数字字符串、小数或不安全整数。允许空数组、负数、重复值；不自动排序或去重。
 - 创建与判分的请求体最多10240字节，按 UTF-8 字节计；超过限制当前返回400 INVALID_INPUT。
@@ -96,4 +96,4 @@ GET /api/knowledge/cards?topicId=binary-search&q=问题&limit=3：topicId缺省b
 
 ## 正式工作台步骤上下文
 
-02使用04完整run和03唯一播放指针，显式分发初始步骤0；输入失效广播null并销毁旧播放/请求。代码按sourceLines/lineId渲染。05共享面板通过setContext同步当前run/step，提问暂停播放；更换run取消旧问答。07挂载点#exercise-mount，subscribeStep(listener)或workbench:step事件接收只读context：{runId,stepIndex,step,total,playing,sourceVersion}或null。07练习/记录已接入，固定题仍使用独立题目情境。具体生命周期见[02接入说明](../../frontend/src/features/workbench/README.md)。
+工作台使用服务端完整运行和一个播放指针，初次运行分发步骤 0。输入失效时广播 `null` 并取消旧请求。源码按 `sourceLines` 和 `lineId` 渲染。内置算法提问时暂停播放，更换运行取消旧问答。`subscribeStep(listener)` 与 `workbench:step` 事件提供只读上下文 `{runId,algorithm,stepIndex,step,total,playing,sourceVersion}` 或 `null`。练习用固定题目情境，作答只关联同主题的运行。具体生命周期见[工作台接入说明](../../frontend/src/features/workbench/README.md)。
