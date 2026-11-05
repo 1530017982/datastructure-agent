@@ -8,7 +8,7 @@
 | 02 | 冯玄 | 102401436 | otto2-5-8 | [统一动画与播放](tasks/02-visualization.md) |
 | 03 | 刘运昆 | 102301225 | kun123567 | [PPT、博客与演示](tasks/03-delivery.md) |
 | 04 |  |  |  | A · [比较排序](tasks/a-sorting-workbench.md) |
-| 05 |  |  |  | B · [图算法与并查集](tasks/b-graphs-engine.md) |
+| 05 |林为峰  | 102301230 |Aidname  | B · [图算法与并查集](tasks/b-graphs-engine.md) |
 | 06 |  |  |  | C · [多路归并、外部排序与多路查找树](tasks/c-external-multiway.md) |
 | 07 |  |  |  | D · [查找与哈希](tasks/d-search-hash.md) |
 | 08 |  |  |  | E · [线性表与数组算法](tasks/e-linear-array.md) |
