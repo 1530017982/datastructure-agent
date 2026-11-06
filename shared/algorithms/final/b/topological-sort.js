@@ -25,8 +25,7 @@ export function generateTopoSteps(input) {
     const ui = nodeIndex.get(u);
     const vi = nodeIndex.get(v);
     if (ui !== undefined && vi !== undefined) {
-      // 修复 3：防止重复边导致入度多加
-      if (graph[ui][vi] === 0) {
+      if (graph[ui][vi] === 0) { 
         graph[ui][vi] = 1;
         inDegree.set(v, inDegree.get(v) + 1);
       }
@@ -37,13 +36,14 @@ export function generateTopoSteps(input) {
   const queue = [];
   const resultOrder = [];
 
-  function record(event, lineId, description, currentNode = null, currentEdge = null) {
+  function record(event, lineId, description, currentNode = null, currentEdge = null, customResult = null) {
     const done = event === 'end';
     steps.push({
       schemaVersion: '1.0', algorithm: 'topological-sort', stepIndex: steps.length,
       sourceVersion: SOURCE_VERSION, event, lineId,
       variables: { inDegree: Object.fromEntries(inDegree), queue: [...queue], resultOrder: [...resultOrder], currentNode, currentEdge },
-      description, done, result: done ? resultOrder : null
+      description, done, 
+      result: done ? (customResult || resultOrder) : null 
     });
   }
 
@@ -60,8 +60,8 @@ export function generateTopoSteps(input) {
 
   while (queue.length > 0) {
     const u = queue.shift();
-    record('pop', 'pop', `节点 ${u} 出队，加入拓扑序列。`, u);
     resultOrder.push(u);
+    record('pop', 'pop', `节点 ${u} 出队，加入拓扑序列。`, u);
 
     const ui = nodeIndex.get(u);
     record('loop-neighbors', 'loop-neighbors', `检查 ${u} 的后继节点。`, u);
@@ -83,8 +83,11 @@ export function generateTopoSteps(input) {
     record('loop', 'loop', `当前队列状态：${queue.length ? queue.join(', ') : '空'}。`, u);
   }
 
-  if (resultOrder.length === n) record('end', 'end', `所有节点均已输出，拓扑排序完成。`);
-  else record('end', 'end', `输出的节点数少于总数，图中存在环，无法完成拓扑排序！`);
+  if (resultOrder.length === n) {
+    record('end', 'end', `所有节点均已输出，拓扑排序完成。`);
+  } else {
+    record('end', 'end', `输出的节点数少于总数，图中存在环，无法完成拓扑排序！`, null, null, 'Has Cycle');
+  }
 
   return { steps, result: resultOrder.length === n ? resultOrder : 'Has Cycle', sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES };
 }

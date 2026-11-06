@@ -1,3 +1,5 @@
+import { DSU } from './dsu-util.js';
+
 const SOURCE_VERSION = 'kruskal-c-v1';
 
 const SOURCE_LINES = [
@@ -13,18 +15,28 @@ const SOURCE_LINES = [
 ];
 
 export function generateKruskalSteps(input) {
-  const { nodes, edges } = input;
+  const { nodes, edges, directed } = input;
+  if (directed === true) throw new Error("Kruskal 算法只支持无向图！");
+
   const n = nodes.length;
-  const edgeList = edges.map(([u, v, w]) => ({ u, v, w }));
+  const edgeList = [];
+  
+  // 彻底复用 DSU 工具
+  const dsu = new DSU(nodes);
+
+  for (const [u, v, w] of edges) {
+    if (!dsu.parent.has(u) || !dsu.parent.has(v)) throw new Error("包含未声明的节点！");
+    edgeList.push({ u, v, w });
+  }
   
   const steps = [];
   const selectedEdges = [];
   let totalWeight = 0;
-  const parent = new Map(nodes.map(node => [node, node]));
 
   function record(event, lineId, description, currentEdge = null) {
     const done = event === 'end';
-    const isForest = selectedEdges.length < n - 1; // 修复 5：是否森林
+    const isForest = selectedEdges.length < n - 1; 
+    const dsuState = dsu.getState();
     
     steps.push({
       schemaVersion: '1.0', algorithm: 'kruskal', stepIndex: steps.length,
@@ -32,7 +44,7 @@ export function generateKruskalSteps(input) {
       variables: {
         selectedEdges: selectedEdges.map(e => `${e.u}-${e.v}(${e.w})`),
         totalWeight, currentEdge, isForest,
-        parent: Object.fromEntries(parent)
+        parent: dsuState.parent, rank: dsuState.rank
       },
       description, done, 
       result: done ? { totalWeight, selectedEdges: selectedEdges.map(e => `${e.u}-${e.v}`), isForest } : null
@@ -45,35 +57,31 @@ export function generateKruskalSteps(input) {
   record('init-dsu', 'init-dsu', `初始化并查集，每个节点各自为一个集合。`);
   record('loop', 'loop', `开始遍历排序后的边。`);
 
-  function findRoot(x) {
-    if (parent.get(x) === x) return x;
-    return findRoot(parent.get(x));
-  }
-
   for (const edge of edgeList) {
     const { u, v, w } = edge;
     record('find-u', 'find-u', `检查边 ${u}-${v} (权重 ${w})。查找 ${u} 所在集合的根。`, [u, v, w]);
-    const rootU = findRoot(u);
+    const rootU = dsu.find(u);
+    
     record('find-v', 'find-v', `查找 ${v} 所在集合的根。`, [u, v, w]);
-    const rootV = findRoot(v);
+    const rootV = dsu.find(v);
+    
     record('check-root', 'check-root', `判断 ${u} 和 ${v} 是否在同一个集合。`, [u, v, w]);
 
     if (rootU !== rootV) {
-      parent.set(rootU, rootV);
+      dsu.union(u, v);
       selectedEdges.push(edge);
       totalWeight += w;
-      record('union', 'union', `根不同，不会成环。合并集合，将边加入最小生成树。`, [u, v, w]);
+      record('union', 'union', `根不同，不会成环。按秩合并集合并加入边。`, [u, v, w]);
     } else {
       record('check-root', 'check-root', `根相同，加入该边会成环，跳过。`, [u, v, w]);
     }
     if (selectedEdges.length === n - 1) break;
   }
 
-  // 修复 5：结束时判断是否是森林
   if (selectedEdges.length === n - 1) {
-    record('end', 'end', `Kruskal 算法结束。图连通，生成最小生成树。总权重：${totalWeight}`);
+    record('end', 'end', `Kruskal 算法结束。生成一棵最小生成树，总权重：${totalWeight}`);
   } else {
-    record('end', 'end', `Kruskal 算法结束。图不连通，生成最小生成森林。总权重：${totalWeight}`);
+    record('end', 'end', `Kruskal 算法结束。图不连通，生成最小生成森林，总权重：${totalWeight}`);
   }
 
   return { steps, result: steps[steps.length - 1].result, sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES };

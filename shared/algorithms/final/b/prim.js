@@ -9,14 +9,16 @@ const SOURCE_LINES = [
   { lineId: 'find-min', text: '    int u = findMinKey(key, inMST);' },
   { lineId: 'mark-mst', text: '    if (u == -1) break; inMST[u] = 1;' },
   { lineId: 'loop-neighbors', text: '    for (int v = 0; v < n; v++) {' },
-  { lineId: 'check-relax', text: '      if (graph[u][v] && !inMST[v] && graph[u][v] < key[v]) {' },
+  // 修复：使用 != INF 判断，防止 0 权边被跳过
+  { lineId: 'check-relax', text: '      if (!inMST[v] && graph[u][v] != INF && graph[u][v] < key[v]) {' },
   { lineId: 'update-key', text: '        key[v] = graph[u][v]; parent[v] = u;' },
   { lineId: 'end', text: '}' }
 ];
 
 export function generatePrimSteps(input) {
-  const { nodes, edges, start } = input;
-  const directed = input.directed || false;
+  const { nodes, edges, start, directed } = input;
+  if (directed === true) throw new Error("Prim 算法只支持无向图！");
+
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
   const graph = Array.from({ length: n }, () => Array(n).fill(Infinity));
@@ -24,13 +26,10 @@ export function generatePrimSteps(input) {
   for (const [u, v, w] of edges) {
     const ui = nodeIndex.get(u);
     const vi = nodeIndex.get(v);
-    if (ui !== undefined && vi !== undefined) {
-      // 修复 1：取平行边中较小的权重
-      graph[ui][vi] = Math.min(graph[ui][vi], w);
-      if (!directed) {
-        graph[vi][ui] = Math.min(graph[vi][ui], w);
-      }
-    }
+    if (ui === undefined || vi === undefined) throw new Error("包含未声明的节点！");
+    
+    graph[ui][vi] = Math.min(graph[ui][vi], w);
+    graph[vi][ui] = Math.min(graph[vi][ui], w);
   }
 
   const steps = [];
@@ -43,19 +42,14 @@ export function generatePrimSteps(input) {
     const done = event === 'end';
     const keyDisplay = {};
     nodes.forEach((node, i) => { keyDisplay[node] = key[i] === Infinity ? '∞' : key[i]; });
-
     const parentDisplay = {};
     nodes.forEach((node, i) => { parentDisplay[node] = parent[i]; });
 
     steps.push({
       schemaVersion: '1.0', algorithm: 'prim', stepIndex: steps.length,
       sourceVersion: SOURCE_VERSION, event, lineId,
-      variables: {
-        key: keyDisplay, parent: parentDisplay, inMST: Array.from(inMST),
-        totalWeight, currentNode, currentEdge
-      },
-      description, done, 
-      result: done ? { totalWeight, mstNodes: Array.from(inMST) } : null
+      variables: { key: keyDisplay, parent: parentDisplay, inMST: Array.from(inMST), totalWeight, currentNode, currentEdge },
+      description, done, result: done ? { totalWeight, mstNodes: Array.from(inMST) } : null
     });
   }
 
@@ -65,19 +59,16 @@ export function generatePrimSteps(input) {
     return { steps, result: { totalWeight: 0, mstNodes: [] }, sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES };
   }
 
-  record('init-key', 'init-key', `创建 key 数组（记录连入树的最小权重），初始化为无穷大。`);
+  record('init-key', 'init-key', `创建 key 数组，初始化为无穷大。`);
   const startIdx = nodeIndex.get(start);
   key[startIdx] = 0;
-  record('start-key', 'start-key', `起点 ${start} 的 key 设为 0，作为生成树的根。`);
+  record('start-key', 'start-key', `起点 ${start} 的 key 设为 0。`);
   record('loop', 'loop', `进入主循环。`);
 
   for (let count = 0; count < n; count++) {
     let uIdx = -1, minKey = Infinity;
     for (let i = 0; i < n; i++) {
-      if (!inMST.has(nodes[i]) && key[i] < minKey) {
-        minKey = key[i];
-        uIdx = i;
-      }
+      if (!inMST.has(nodes[i]) && key[i] < minKey) { minKey = key[i]; uIdx = i; }
     }
 
     if (uIdx === -1) {

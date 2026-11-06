@@ -1,3 +1,5 @@
+import { DSU } from './dsu-util.js';
+
 const SOURCE_VERSION = 'uf-c-v1';
 
 const SOURCE_LINES = [
@@ -15,21 +17,21 @@ const SOURCE_LINES = [
 
 export function generateUnionFindSteps(input) {
   const { elements, operations } = input;
-  const n = elements.length;
-  
-  const parent = new Map(elements.map(e => [e, e]));
-  let setCount = n;
+  const dsu = new DSU(elements);
+  let setCount = dsu.setCount;
   const steps = [];
-  const failedOps = []; // 修复：记录失败的操作序列
+  const failedOps = []; 
 
   function record(event, lineId, description, currentOp = null, errorMsg = null) {
     const done = event === 'end';
+    const dsuState = dsu.getState();
+    
     steps.push({
       schemaVersion: '1.0', algorithm: 'union-find', stepIndex: steps.length,
       sourceVersion: SOURCE_VERSION, event, lineId,
-      variables: { parent: Object.fromEntries(parent), setCount, currentOp, errorMsg },
+      variables: { parent: dsuState.parent, rank: dsuState.rank, setCount, currentOp, errorMsg },
       description, done, 
-      result: done ? { setCount, failedOps } : null // 修复：最终返回包含 failedOps
+      result: done ? { setCount, failedOps } : null 
     });
   }
 
@@ -39,45 +41,36 @@ export function generateUnionFindSteps(input) {
   for (const op of operations) {
     const [type, x, y] = op;
     
-    if (type === 'find' || type === 'union') {
-      // 修复：未定义元素校验并记录失败
-      if (!parent.has(x) || (type === 'union' && !parent.has(y))) {
-        const msg = `未知元素错误：${!parent.has(x) ? x : y} 不存在。`;
-        record('init', 'init', msg, op, msg);
-        failedOps.push({ op, reason: msg });
-        continue;
-      }
+    if (type !== 'find' && type !== 'union') {
+      failedOps.push({ op, reason: `不支持的操作类型：${type}` });
+      continue;
     }
 
-    if (type === 'find' || type === 'union') {
-      record('find', 'find', `开始处理 ${type}(${x}${y ? ', ' + y : ''})。查找 ${x} 的根。`, op);
+    if (!dsu.parent.has(x) || (type === 'union' && !dsu.parent.has(y))) {
+      failedOps.push({ op, reason: `未知元素错误：${!dsu.parent.has(x) ? x : y} 不存在。` });
+      continue;
+    }
+
+    record('find', 'find', `开始处理 ${type}(${x}${y ? ', ' + y : ''})。查找 ${x} 的根。`, op);
       
-      function findRoot(node) {
-        if (parent.get(node) === node) return node;
-        const root = findRoot(parent.get(node));
-        parent.set(node, root);
-        return root;
-      }
+    const rootX = dsu.find(x);
+    record('find-root', 'find-root', `找到 ${x} 的根：${rootX}。`, op);
 
-      const rootX = findRoot(x);
-      record('find-root', 'find-root', `找到 ${x} 的根：${rootX}。`, op);
+    if (type === 'find') {
+      record('path-compress', 'path-compress', `${x} 指向根 ${rootX}。`, op);
+      continue;
+    }
 
-      if (type === 'find') {
-        record('path-compress', 'path-compress', `${x} 指向根 ${rootX}。`, op);
-        continue;
-      }
+    const rootY = dsu.find(y);
+    record('find-roots', 'find-roots', `找到 ${y} 的根：${rootY}。`, op);
+    record('check-root', 'check-root', `判断 ${rootX} 和 ${rootY} 是否相同。`, op);
 
-      const rootY = findRoot(y);
-      record('find-roots', 'find-roots', `找到 ${y} 的根：${rootY}。`, op);
-      record('check-root', 'check-root', `判断 ${rootX} 和 ${rootY} 是否相同。`, op);
-
-      if (rootX !== rootY) {
-        parent.set(rootX, rootY);
-        setCount--;
-        record('merge', 'merge', `根不同，合并集合。${rootX} 的父节点指向 ${rootY}，当前集合数：${setCount}。`, op);
-      } else {
-        record('check-root', 'check-root', `根相同，本就在同一集合，无需合并。当前集合数：${setCount}。`, op);
-      }
+    if (rootX !== rootY) {
+      dsu.union(x, y);
+      setCount = dsu.setCount;
+      record('merge', 'merge', `根不同，按秩合并集合。当前集合数：${setCount}。`, op);
+    } else {
+      record('check-root', 'check-root', `根相同，无需合并。当前集合数：${setCount}。`, op);
     }
   }
 

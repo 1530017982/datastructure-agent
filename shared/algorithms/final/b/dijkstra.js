@@ -9,7 +9,8 @@ const SOURCE_LINES = [
   { lineId: 'find-min', text: '    int u = findMinDistance(dist, visited);' },
   { lineId: 'mark-visited', text: '    if (u == -1) break; visited[u] = 1;' },
   { lineId: 'loop-neighbors', text: '    for (int v = 0; v < n; v++) {' },
-  { lineId: 'check-relax', text: '      if (!visited[v] && graph[u][v] && dist[u] + graph[u][v] < dist[v]) {' },
+  // 修复：判断 != INF，避免 0 权边被跳过
+  { lineId: 'check-relax', text: '      if (!visited[v] && graph[u][v] != INF && dist[u] + graph[u][v] < dist[v]) {' },
   { lineId: 'update-dist', text: '        dist[v] = dist[u] + graph[u][v];' },
   { lineId: 'end', text: '}' }
 ];
@@ -26,12 +27,11 @@ export function generateDijkstraSteps(input) {
     if (w < 0) throw new Error("Dijkstra 算法拒绝包含负权边的图！");
     const ui = nodeIndex.get(u);
     const vi = nodeIndex.get(v);
-    if (ui !== undefined && vi !== undefined) {
-      // 修复：取平行边中较小的权重
-      graph[ui][vi] = Math.min(graph[ui][vi], w);
-      if (!directed) {
-        graph[vi][ui] = Math.min(graph[vi][ui], w);
-      }
+    if (ui === undefined || vi === undefined) throw new Error("包含未声明的节点！");
+    
+    graph[ui][vi] = Math.min(graph[ui][vi], w);
+    if (!directed) {
+      graph[vi][ui] = Math.min(graph[vi][ui], w);
     }
   }
 
