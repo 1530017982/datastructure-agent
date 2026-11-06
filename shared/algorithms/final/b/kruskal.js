@@ -24,15 +24,18 @@ export function generateKruskalSteps(input) {
 
   function record(event, lineId, description, currentEdge = null) {
     const done = event === 'end';
+    const isForest = selectedEdges.length < n - 1; // 修复 5：是否森林
+    
     steps.push({
       schemaVersion: '1.0', algorithm: 'kruskal', stepIndex: steps.length,
       sourceVersion: SOURCE_VERSION, event, lineId,
       variables: {
         selectedEdges: selectedEdges.map(e => `${e.u}-${e.v}(${e.w})`),
-        totalWeight, currentEdge,
+        totalWeight, currentEdge, isForest,
         parent: Object.fromEntries(parent)
       },
-      description, done, result: done ? { totalWeight, selectedEdges: selectedEdges.map(e => `${e.u}-${e.v}`) } : null
+      description, done, 
+      result: done ? { totalWeight, selectedEdges: selectedEdges.map(e => `${e.u}-${e.v}`), isForest } : null
     });
   }
 
@@ -66,6 +69,12 @@ export function generateKruskalSteps(input) {
     if (selectedEdges.length === n - 1) break;
   }
 
-  record('end', 'end', `Kruskal 算法结束。总权重：${totalWeight}`);
+  // 修复 5：结束时判断是否是森林
+  if (selectedEdges.length === n - 1) {
+    record('end', 'end', `Kruskal 算法结束。图连通，生成最小生成树。总权重：${totalWeight}`);
+  } else {
+    record('end', 'end', `Kruskal 算法结束。图不连通，生成最小生成森林。总权重：${totalWeight}`);
+  }
+
   return { steps, result: steps[steps.length - 1].result, sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES };
 }

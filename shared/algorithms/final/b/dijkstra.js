@@ -16,19 +16,19 @@ const SOURCE_LINES = [
 
 export function generateDijkstraSteps(input) {
   const { nodes, edges, start } = input;
+  const directed = input.directed || false; // 修复 2：读取有向图配置
   
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
   const graph = Array.from({ length: n }, () => Array(n).fill(Infinity));
   
-  // 检查负权
   for (const [u, v, w] of edges) {
     if (w < 0) throw new Error("Dijkstra 算法拒绝包含负权边的图！");
     const ui = nodeIndex.get(u);
     const vi = nodeIndex.get(v);
     if (ui !== undefined && vi !== undefined) {
       graph[ui][vi] = w;
-      graph[vi][ui] = w; // 无向图
+      if (!directed) graph[vi][ui] = w; // 修复 2：只有无向图才反向赋值
     }
   }
 
@@ -39,32 +39,19 @@ export function generateDijkstraSteps(input) {
 
   function record(event, lineId, description, currentNode = null, currentEdge = null) {
     const done = event === 'end';
-    // 构造供前端展示的 dist 对象
     const distDisplay = {};
-    nodes.forEach((node, i) => {
-      distDisplay[node] = dist[i] === Infinity ? '∞' : dist[i];
-    });
-
+    nodes.forEach((node, i) => { distDisplay[node] = dist[i] === Infinity ? '∞' : dist[i]; });
     const prevDisplay = {};
-    nodes.forEach((node, i) => {
-      prevDisplay[node] = previous[i];
-    });
+    nodes.forEach((node, i) => { prevDisplay[node] = previous[i]; });
 
     steps.push({
       schemaVersion: '1.0', algorithm: 'dijkstra', stepIndex: steps.length,
       sourceVersion: SOURCE_VERSION, event, lineId,
-      variables: {
-        dist: distDisplay,
-        previous: prevDisplay,
-        visited: Array.from(visited),
-        currentNode,
-        currentEdge
-      },
+      variables: { dist: distDisplay, previous: prevDisplay, visited: Array.from(visited), currentNode, currentEdge },
       description, done, result: done ? distDisplay : null
     });
   }
 
-  // 1. 初始化
   record('init', 'init', `初始化 Dijkstra，准备从起点 ${start} 开始。`);
   if (!nodeIndex.has(start)) {
     record('end', 'end', `起点 ${start} 不在图中，结束。`);
@@ -75,19 +62,12 @@ export function generateDijkstraSteps(input) {
   const startIdx = nodeIndex.get(start);
   dist[startIdx] = 0;
   record('start-dist', 'start-dist', `起点 ${start} 到自己的距离设为 0。`);
-
-  // 2. 开始主循环
   record('loop', 'loop', `进入主循环。`);
 
   for (let count = 0; count < n; count++) {
-    // 找最小距离的未访问节点
-    let uIdx = -1;
-    let minDist = Infinity;
+    let uIdx = -1, minDist = Infinity;
     for (let i = 0; i < n; i++) {
-      if (!visited.has(nodes[i]) && dist[i] < minDist) {
-        minDist = dist[i];
-        uIdx = i;
-      }
+      if (!visited.has(nodes[i]) && dist[i] < minDist) { minDist = dist[i]; uIdx = i; }
     }
 
     if (uIdx === -1) {
@@ -97,32 +77,22 @@ export function generateDijkstraSteps(input) {
 
     const u = nodes[uIdx];
     record('find-min', 'find-min', `找到当前距离最小的未访问节点：${u} (距离: ${dist[uIdx]})。`, u);
-    
     visited.add(u);
     record('mark-visited', 'mark-visited', `节点 ${u} 的最短距离已确定，标记为已访问。`, u);
-
     record('loop-neighbors', 'loop-neighbors', `开始检查 ${u} 的邻接点，进行松弛操作。`, u);
 
-    // 遍历邻接点并松弛
     for (let vIdx = 0; vIdx < n; vIdx++) {
       if (graph[uIdx][vIdx] !== Infinity && !visited.has(nodes[vIdx])) {
-        const v = nodes[vIdx];
-        const weight = graph[uIdx][vIdx];
-        const newDist = dist[uIdx] + weight;
-
+        const v = nodes[vIdx], weight = graph[uIdx][vIdx], newDist = dist[uIdx] + weight;
         record('check-relax', 'check-relax', `检查边 ${u} -> ${v}，如果借道 ${u} 更近，则更新距离。`, u, [u, v, weight]);
-
         if (newDist < dist[vIdx]) {
-          dist[vIdx] = newDist;
-          previous[vIdx] = u;
+          dist[vIdx] = newDist; previous[vIdx] = u;
           record('update-dist', 'update-dist', `发现更短路径！更新 ${v} 的距离为 ${newDist}，前驱设为 ${u}。`, u, [u, v, weight]);
         }
       }
     }
   }
 
-  // 3. 结束
   record('end', 'end', `所有可达节点处理完毕，Dijkstra 结束。`);
-  
   return { steps, result: steps[steps.length - 1].variables.dist, sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES };
 }

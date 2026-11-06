@@ -14,7 +14,6 @@ const SOURCE_LINES = [
 ];
 
 export function generateUnionFindSteps(input) {
-  // 输入格式: { elements: ['A','B','C'], operations: [['union','A','B'], ['find','A']] }
   const { elements, operations } = input;
   const n = elements.length;
   
@@ -27,11 +26,7 @@ export function generateUnionFindSteps(input) {
     steps.push({
       schemaVersion: '1.0', algorithm: 'union-find', stepIndex: steps.length,
       sourceVersion: SOURCE_VERSION, event, lineId,
-      variables: {
-        parent: Object.fromEntries(parent),
-        setCount,
-        currentOp
-      },
+      variables: { parent: Object.fromEntries(parent), setCount, currentOp },
       description, done, result: done ? { setCount } : null
     });
   }
@@ -42,14 +37,21 @@ export function generateUnionFindSteps(input) {
   for (const op of operations) {
     const [type, x, y] = op;
     
+    // 修复 4：未定义元素校验
+    if (type === 'find' || type === 'union') {
+      if (!parent.has(x) || (type === 'union' && !parent.has(y))) {
+        record('init', 'init', `错误：操作序列包含未知元素，拒绝执行。`, op);
+        continue;
+      }
+    }
+
     if (type === 'find' || type === 'union') {
       record('find', 'find', `开始处理 ${type}(${x}${y ? ', ' + y : ''})。查找 ${x} 的根。`, op);
       
-      // 内部递归找根（带路径压缩）
       function findRoot(node) {
         if (parent.get(node) === node) return node;
         const root = findRoot(parent.get(node));
-        parent.set(node, root); // 路径压缩
+        parent.set(node, root);
         return root;
       }
 
@@ -63,7 +65,6 @@ export function generateUnionFindSteps(input) {
 
       const rootY = findRoot(y);
       record('find-roots', 'find-roots', `找到 ${y} 的根：${rootY}。`, op);
-
       record('check-root', 'check-root', `判断 ${rootX} 和 ${rootY} 是否相同。`, op);
 
       if (rootX !== rootY) {

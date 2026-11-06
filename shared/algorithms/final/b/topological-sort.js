@@ -15,7 +15,7 @@ const SOURCE_LINES = [
 ];
 
 export function generateTopoSteps(input) {
-  const { nodes, edges } = input; // 有向图，edges: [['A','C']]
+  const { nodes, edges } = input;
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
   const graph = Array.from({ length: n }, () => Array(n).fill(0));
@@ -25,8 +25,11 @@ export function generateTopoSteps(input) {
     const ui = nodeIndex.get(u);
     const vi = nodeIndex.get(v);
     if (ui !== undefined && vi !== undefined) {
-      graph[ui][vi] = 1;
-      inDegree.set(v, inDegree.get(v) + 1);
+      // 修复 3：防止重复边导致入度多加
+      if (graph[ui][vi] === 0) {
+        graph[ui][vi] = 1;
+        inDegree.set(v, inDegree.get(v) + 1);
+      }
     }
   }
 
@@ -39,12 +42,7 @@ export function generateTopoSteps(input) {
     steps.push({
       schemaVersion: '1.0', algorithm: 'topological-sort', stepIndex: steps.length,
       sourceVersion: SOURCE_VERSION, event, lineId,
-      variables: {
-        inDegree: Object.fromEntries(inDegree),
-        queue: [...queue],
-        resultOrder: [...resultOrder],
-        currentNode, currentEdge
-      },
+      variables: { inDegree: Object.fromEntries(inDegree), queue: [...queue], resultOrder: [...resultOrder], currentNode, currentEdge },
       description, done, result: done ? resultOrder : null
     });
   }
