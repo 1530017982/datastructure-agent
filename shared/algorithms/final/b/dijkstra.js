@@ -15,8 +15,9 @@ const SOURCE_LINES = [
 ];
 
 export function generateDijkstraSteps(input) {
-  const { nodes, start, directed } = input;
+ 
   const validEdges = validateGraphInput(input, 'Dijkstra', true);
+   const { nodes, start, directed } = input;
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
   const graph = Array.from({ length: n }, () => Array(n).fill(Infinity));

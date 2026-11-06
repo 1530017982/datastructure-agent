@@ -15,8 +15,9 @@ const SOURCE_LINES = [
 ];
 
 export function generateKruskalSteps(input) {
-  const { nodes } = input;
+  
   const validEdges = validateGraphInput(input, 'Kruskal', true);
+  const { nodes } = input;
   const n = nodes.length;
   const dsu = new DSU(nodes);
   const edgeList = validEdges.map((e, index) => ({ u: e.u, v: e.v, w: e.w, originalIndex: index }));

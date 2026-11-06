@@ -16,9 +16,10 @@ const SOURCE_LINES = [
 ];
 
 export function generateTopoSteps(input) {
-  const { nodes } = input;
+  
   // 严格校验，无权图
   const validEdges = validateGraphInput(input, '拓扑排序', false);
+  const { nodes } = input;
 
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));

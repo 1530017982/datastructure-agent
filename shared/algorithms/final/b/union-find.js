@@ -19,7 +19,11 @@ const SOURCE_LINES = [
 ];
 
 export function generateUnionFindSteps(input) {
+  if (input === null || typeof input !== 'object') {
+    throw new Error("【并查集】输入必须是一个非空对象。");
+  }
   const { elements, operations } = input;
+ 
   const dsu = new DSU(elements);
   let setCount = dsu.setCount;
   const steps = [];

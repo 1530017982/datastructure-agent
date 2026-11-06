@@ -16,8 +16,9 @@ const SOURCE_LINES = [
 ];
 
 export function generatePrimSteps(input) {
-  const { nodes, start } = input;
+  
   const validEdges = validateGraphInput(input, 'Prim', true);
+  const { nodes, start } = input;
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
   const graph = Array.from({ length: n }, () => Array(n).fill(Infinity));
