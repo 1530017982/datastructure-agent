@@ -21,7 +21,7 @@ Node >=22.9，使用内置 fetch，无新增运行依赖。根目录复制 `.env
 
 `POST /api/agent/explain` 输入 `{runId,stepIndex,question,hintLevel,sessionId?,conversationId?,turnId?}`。question最多2000字符，参数严格校验，状态只来自服务端，不采用客户端伪造变量。sessionId仅用于展示统计，不是权限或限流身份。
 
-成功返回 `{runId,stepIndex,hintLevel,answer,stepRefs,sourceRefs,knowledgeUsed,retrieval,usage}`。stepRefs来自真实运行；为兼容旧消费者，sourceRefs固定为空、knowledgeUsed=false、retrieval.method=none/status=disabled。真实模式下有效问题在参数、运行及额度检查后直接调用模型；没有关键词或知识资料不可用也不会拦截聊天。真实 usage包含模型、tokens、elapsedMs、cost/CNY及估算说明；上游未给完整用量或未配置价格时保留null，不能当成免费。输入/输出单价必须依据实际模型和账户核对后填入环境变量，代码不内置未核实价格。
+成功返回 `{runId,stepIndex,hintLevel,answer,stepRefs,sourceRefs,knowledgeUsed,retrieval,usage}`。stepRefs来自真实运行。图算法的引用包含当前步骤的变量，真实模型还会收到本次运行的图、当前与上一步快照及展示代码。为兼容旧消费者，sourceRefs固定为空、knowledgeUsed=false、retrieval.method=none/status=disabled。真实模式下有效问题在参数、运行及额度检查后直接调用模型；没有关键词或知识资料不可用也不会拦截聊天。真实 usage包含模型、tokens、elapsedMs、cost/CNY及估算说明；上游未给完整用量或未配置价格时保留null，不能当成免费。输入/输出单价必须依据实际模型和账户核对后填入环境变量，代码不内置未核实价格。
 
 `GET /api/agent/usage?sessionId=...` 返回本次服务进程、北京时间当日、同socket来源与session的请求次数、失败数、累计耗时、tokensUsed/costUsed。出现未知调用时累计值为null；页面与POST使用相同session。统计重启清零，**预算预留不会随统计清零**。
 

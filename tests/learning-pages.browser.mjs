@@ -119,14 +119,14 @@ try{
  await shot('intro-note-mobile');
  await page.goto(base+'/#knowledge?unit=sort&section=sort-2');
  await page.getByRole('link',{name:'进入冒泡排序工作台 →',exact:true}).click();
- await page.waitForFunction(()=>document.querySelector('#algorithm-select').value==='bubble-sort');
+ await page.waitForFunction(()=>document.querySelector('#algorithm-trigger').dataset.algorithm==='bubble-sort');
  assert.equal(await page.locator('#workbench-heading').innerText(),'冒泡排序');
  await page.reload();
  await page.waitForFunction(()=>document.body.dataset.page==='workbench');
- assert.equal(await page.inputValue('#algorithm-select'),'bubble-sort');
+ assert.equal(await page.locator('#algorithm-trigger').getAttribute('data-algorithm'),'bubble-sort');
  await page.goto(base+'/#knowledge?unit=search&section=search-2');
  await page.getByRole('link',{name:'进入二分查找工作台 →',exact:true}).click();
- await page.waitForFunction(()=>document.querySelector('#algorithm-select').value==='binary-search');
+ await page.waitForFunction(()=>document.querySelector('#algorithm-trigger').dataset.algorithm==='binary-search');
  assert.equal(await page.locator('#workbench-heading').innerText(),'二分查找');
  passed.push('both note shortcuts select the right algorithm, including after a workbench reload');
  assert.deepEqual(errors,[]);passed.push('direct page URLs/reload preserve records, and 390/320px views fit');

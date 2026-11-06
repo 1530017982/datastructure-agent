@@ -1,9 +1,8 @@
 import { validateGraphInput } from './validate-util.js';
 
-const SOURCE_VERSION = 'floyd-c-v1';
+const SOURCE_VERSION = 'floyd-c-v2';
 const SOURCE_LINES = [
   { lineId: 'init', text: 'void floyd(int dist[][MAX], int n) {' },
-  { lineId: 'init-dist', text: '  // 初始化矩阵' },
   { lineId: 'loop-k', text: '  for (int k = 0; k < n; k++) {' },
   { lineId: 'loop-i', text: '    for (int i = 0; i < n; i++) {' },
   { lineId: 'loop-j', text: '      for (int j = 0; j < n; j++) {' },
@@ -44,7 +43,7 @@ export function generateFloydSteps(input) {
   }
 
   record('init', 'init', `初始化 Floyd。`);
-  record('init-dist', 'init-dist', `矩阵初始化完成，对角线为0。`);
+  record('init-dist', 'init', `矩阵初始化完成，对角线为0。`);
 
   for (let k = 0; k < n; k++) {
     record('loop-k', 'loop-k', `中转点 k = ${nodes[k]}。`, k);

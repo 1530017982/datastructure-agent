@@ -1,4 +1,9 @@
 import { createRun, requestJSON } from './services/api.js';
+import { createGraphForm } from './features/workbench/bfs-form.js';
+import { displaySourceLines, displayLineId } from './features/workbench/display-source.js';
+import { arraySearch } from './features/workbench/array-search.js';
+import { createAlgorithmMenu } from './features/workbench/algorithm-menu.js';
+import { graphAlgorithm } from './features/workbench/graph-algorithms.js';
 import { parseInput, validateRun } from './features/workbench/input.js';
 import { describeStep } from './features/visualization/index.js';
 import { createVizWindow } from './features/visualization/window.js';
@@ -8,9 +13,10 @@ import { createAgentChat } from './features/agent/panel.js';
 import { createWorkbenchUI } from './features/workbench/ui.js';
 
 const $ = id => document.getElementById(id);
-const algorithmPicker = $('algorithm-select');
-const isSorting = () => algorithmPicker.value === 'bubble-sort';
-const isCustom = () => algorithmPicker.value === 'custom-array';
+let selectedAlgorithm = 'binary-search';
+const isSorting = () => selectedAlgorithm === 'bubble-sort';
+const selectedGraph = () => graphAlgorithm(selectedAlgorithm);
+const isCustom = () => selectedAlgorithm === 'custom-array';
 const customExample = `void sort(int a[], int n) {
   for (int end = n - 1; end > 0; end--) {
     for (int i = 0; i < end; i++) {
@@ -28,19 +34,28 @@ let run = null, playback = null, viz = null, pending = null, generation = 0;
 let currentContext = null;
 let practiceTopic = 'binary-search';
 const speedMs = 1000;
+const graphForm = createGraphForm({ message, onChange: updateGraphDraft });
+const runButtonLabel = () => selectedGraph() ? (run ? '重新运行' : '运行 ' + selectedGraph().name) : isCustom() ? '编译并运行' : '开始分析';
 const ui = createWorkbenchUI({
   onNavigate(page, algorithm) {
     if (page !== 'workbench' && playback?.getState().playing) playback.pause();
-    if (algorithm && algorithmPicker.value !== algorithm) {
-      algorithmPicker.value = algorithm;
+    if (algorithm && selectedAlgorithm !== algorithm) {
+      selectedAlgorithm = algorithm;
       configureAlgorithm();
     }
   },
 });
+const algorithmMenu = createAlgorithmMenu($('algorithm-menu'), algorithm => {
+  if (algorithm === selectedAlgorithm) return;
+  selectedAlgorithm = algorithm;
+  configureAlgorithm();
+  ui.navigate('workbench', { algorithm, replace: true });
+});
+algorithmMenu.setSelected(selectedAlgorithm);
 function mountWindow() {
   $('visualization-panel').replaceChildren();
   viz = createVizWindow($('visualization-panel'), {
-    algorithm: algorithmPicker.value,
+    algorithm: selectedAlgorithm,
     onSeek(index) { playback?.seek(index); },
     onTransport(action) { playback?.[action]?.(); }
   });
@@ -82,16 +97,16 @@ function publish(context) {
   document.dispatchEvent(new CustomEvent('workbench:step',{detail:context}));
 }
 function message(text, error=false) { $('msgBox').textContent=text;$('msgBox').className=error?'error':''; }
-function clearRun() {
-  generation++; pending?.abort(); pending=null;
+function clearRun({ keepRequest = false } = {}) {
+  if (!keepRequest) { generation++; pending?.abort(); pending=null; }
   playback?.destroy(); viz?.destroy(); playback=null;viz=null;run=null;
   sourceNodes.clear(); $('code-lines').replaceChildren();
   const placeholder=document.createElement('li');placeholder.textContent='开始分析后显示对应源码。';$('code-lines').append(placeholder);
   mountWindow();
   for (const id of variableIds) $(id).textContent = '—';
-  if (!isSorting() && !isCustom()) $('varMid').textContent = '未计算';
+  if (selectedAlgorithm === 'binary-search') $('varMid').textContent = '未计算';
   $('stepText').textContent='尚未开始';$('step-description').textContent='';$('source-version').textContent='C/C++';
-  $('startBtn').disabled=false;$('startBtn').textContent=isCustom()?'编译并运行':'开始分析';$('run-form').removeAttribute('aria-busy');
+  $('startBtn').disabled=false;$('startBtn').textContent=runButtonLabel();$('run-form').removeAttribute('aria-busy');
   publish(null);
 }
 function render(state) {
@@ -100,13 +115,36 @@ function render(state) {
   viz.setStep(step, state);
   const { left, right, mid, pass, index, sortedFrom, line, writes } = step.variables;
   let values;
-  if (run.algorithm === 'custom-array') values = [line, index ?? '—', index === null ? '—' : step.array[index], writes];
+  if (run.graph) {
+    values = selectedGraph().fields.map(([key]) => {
+      const value = step.variables[key];
+      if (key === 'matrix') {
+        const nodes = run.graph.nodes;
+        return ['列顺序：' + nodes.join('、'), ...value.map((row, index) => nodes[index] + '：' + row)].join('\n');
+      }
+      if (key === 'currentEdge' && value) {
+        const [from, to, weight] = value;
+        return from + (run.graph.directed ? ' → ' : ' — ') + to + (weight === undefined ? '' : '（' + weight + '）');
+      }
+      if (Array.isArray(value)) return value.join('、') || '空';
+      if (value && typeof value === 'object') {
+        return run.graph.nodes.map(node => node + '：' + (value[node] ?? '—')).join('、');
+      }
+      return value ?? '—';
+    });
+  } else if (arraySearch(run.algorithm)) {
+    const { index, current, comparisons, blockIndex, blockMax } = step.variables;
+    values = run.algorithm === 'block-search'
+      ? [blockIndex ?? '—', blockMax ?? '—', index ?? '—', current ?? '—']
+      : [index ?? '—', current ?? '—', step.target, comparisons];
+  } else if (run.algorithm === 'custom-array') values = [line, index ?? '—', index === null ? '—' : step.array[index], writes];
   else if (run.algorithm === 'bubble-sort') values = [pass || '—', index ?? '—', index === null ? '—' : index + 1, step.array.length - sortedFrom];
   else values = [left, right, mid ?? '未计算', mid === null ? '—' : step.array[mid]];
   variableIds.forEach((id, i) => { $(id).textContent = values[i]; });
   $('stepText').textContent=`第 ${state.stepIndex+1} 步 / 共 ${state.total} 步`;
-  $('step-description').textContent=describeStep(step);
-  for(const [lineId,node] of sourceNodes){const active=lineId===step.lineId;node.classList.toggle('active',active);if(active)node.setAttribute('aria-current','step');else node.removeAttribute('aria-current');}
+  $('step-description').textContent=run.graph ? step.description : describeStep(step);
+  const activeId = displayLineId(run.algorithm, step.lineId);
+  for(const [lineId,node] of sourceNodes){const active=lineId===activeId;node.classList.toggle('active',active);if(active)node.setAttribute('aria-current','step');else node.removeAttribute('aria-current');}
   if (run.algorithm === 'custom-array') {
     const list = $('code-lines');
     const activeLine = sourceNodes.get(step.lineId).getBoundingClientRect();
@@ -117,9 +155,19 @@ function render(state) {
   publish({runId:run.runId,algorithm:run.algorithm,stepIndex:state.stepIndex,step,total:state.total,playing:state.playing,sourceVersion:run.sourceVersion});
 }
 async function start(event) {
-  event.preventDefault(); clearRun();
-  const algorithm = algorithmPicker.value;
-  let input;try{input=parseInput($('arrInput').value,$('targetInput').value,algorithm);}catch(error){message(error.message,true);return;}
+  event.preventDefault();
+  const graph = selectedGraph();
+  if (graph && pending) return;
+  if (!graph) clearRun();
+  const algorithm = selectedAlgorithm;
+  let input;
+  try {
+    input = graph ? graphForm.read() : parseInput($('arrInput').value, $('targetInput').value, algorithm);
+  } catch (error) {
+    message(error.message, true);
+    return;
+  }
+  if (!input) return;
   const custom = algorithm === 'custom-array';
   if (custom) {
     input.language = $('code-language').value;
@@ -132,42 +180,68 @@ async function start(event) {
   try{
     const result=validateRun(await createRun(input,controller.signal,algorithm),algorithm);
     if(ticket!==generation)return;
+    if (graph) clearRun({ keepRequest: true });
     run=result;$('code-lines').replaceChildren();
-    for(const line of run.sourceLines){const node=document.createElement('li');node.textContent=line.text;node.dataset.lineId=line.lineId;sourceNodes.set(line.lineId,node);$('code-lines').append(node);}
+    for(const line of displaySourceLines(run)){const node=document.createElement('li');node.textContent=line.text;node.dataset.lineId=line.lineId;sourceNodes.set(line.lineId,node);$('code-lines').append(node);}
     $('source-version').textContent=custom ? `${input.language === 'c' ? 'C' : 'C++'} · Open Watcom` : `C/C++ · ${run.sourceVersion}`;
     viz.setRun(run);
     playback=createPlayback({runId:run.runId,steps:run.steps,intervalMs:speedMs,onStepChange:render});
     render({...playback.getState(),step:run.steps[0]});
-    message('运行已创建。从第 1 步开始，可单步查看或播放。');
-  }catch(error){if(ticket!==generation||error.name==='AbortError')return;clearRun();message(error.message,true);}
-  finally{if(ticket===generation){pending=null;$('startBtn').disabled=false;$('startBtn').textContent=custom?'编译并运行':'开始分析';$('run-form').removeAttribute('aria-busy');}}
+    if (graph) {
+      graphForm.summarize(run.graph);
+      message('');
+    } else {
+      message('运行已创建。从第 1 步开始，可单步查看或播放。');
+    }
+  }catch(error){if(ticket!==generation||error.name==='AbortError')return;if (!graph) clearRun();message(error.message,true);}
+  finally{if(ticket===generation){pending=null;$('startBtn').disabled=false;$('startBtn').textContent=runButtonLabel();$('run-form').removeAttribute('aria-busy');}}
 }
 $('run-form').addEventListener('submit',start);
 function configureAlgorithm() {
   const sorting = isSorting();
   const custom = isCustom();
-  $('workbench-heading').textContent = custom ? '自定义代码' : sorting ? '冒泡排序' : '二分查找';
-  $('source-file').textContent = custom ? '用户源码' : sorting ? 'bubble_sort.cpp' : 'binary_search.cpp';
-  $('array-label').textContent = custom ? '输入数组' : sorting ? '待排序数组' : '有序数组';
+  const graph = selectedGraph();
+  const search = arraySearch(selectedAlgorithm);
+  graphForm.setAlgorithm(graph);
+  $('arrInput').closest('label').hidden = Boolean(graph);
+  $('input-help').hidden = Boolean(graph);
+  $('run-form').classList.toggle('bfs-input', Boolean(graph));
+  $('code-panel').classList.toggle('graph-workspace', Boolean(graph));
+  $('code-panel').classList.toggle('floyd-workspace', selectedAlgorithm === 'floyd');
+  $('workbench-footer-detail').textContent = graph ? '图结构和步骤来自本次运行' : '数组下标从 0 开始';
+  $('visualization-panel').setAttribute('aria-label', graph ? graph.name + ' 执行过程，可用左右方向键单步操作' : '数组动画，可用左右方向键单步操作');
+  $('workbench-heading').textContent = graph?.title ?? search?.title ?? (custom ? '自定义代码' : sorting ? '冒泡排序' : '二分查找');
+  $('source-file').textContent = graph ? selectedAlgorithm.replace('-', '_') + '.cpp' : search?.file ?? (custom ? '用户源码' : sorting ? 'bubble_sort.cpp' : 'binary_search.cpp');
+  $('array-label').textContent = selectedAlgorithm === 'block-search' ? '分块数组' : custom || search ? '输入数组' : sorting ? '待排序数组' : '有序数组';
   $('arrInput').value = '';
-  $('arrInput').placeholder = sorting || custom ? '例如：5, 1, 4, 2' : '例如：1, 3, 5, 7, 9';
-  $('target-field').hidden = sorting || custom;
+  $('arrInput').placeholder = search ? '例如：' + search.example : sorting || custom ? '例如：5, 1, 4, 2' : '例如：1, 3, 5, 7, 9';
+  $('target-field').hidden = sorting || custom || Boolean(graph);
   $('custom-code-fields').hidden = !custom;
   $('run-form').classList.toggle('sorting-input', sorting || custom);
   $('input-help').textContent = custom ? '本机 Windows 编译运行。最多 24 个 32 位整数，逗号分隔；留空为空数组。'
-    : sorting ? '最多 24 个安全整数，逗号分隔；留空为空数组。允许负数和重复值。' : binaryHelp;
-  const labels = custom ? ['源码行', '写入下标', '写入值', '写入次数']
+    : sorting ? '最多 24 个安全整数，逗号分隔；留空为空数组。允许负数和重复值。' : search?.help ?? binaryHelp;
+  const labels = graph ? graph.fields.map(([, label]) => label) : custom ? ['源码行', '写入下标', '写入值', '写入次数']
+    : selectedAlgorithm === 'block-search' ? ['当前块', '块最大值', '数组下标', '当前元素']
+    : search ? ['当前下标', '当前元素', '目标值', '比较次数']
     : sorting ? ['轮次', 'i', 'i + 1', '已就位'] : ['left', 'right', 'mid', 'A[mid]'];
   variableIds.forEach((id, i) => { $(id).previousElementSibling.textContent = labels[i]; });
-  ui.setAlgorithm(algorithmPicker.value);
+  algorithmMenu.setSelected(selectedAlgorithm);
+  ui.setAlgorithm(selectedAlgorithm);
   clearRun();
-  if (!custom) exercises.setTopic(algorithmPicker.value);
+  if (!custom && !graph && !search) exercises.setTopic(selectedAlgorithm);
   message('');
 }
-algorithmPicker.addEventListener('change', () => {
-  configureAlgorithm();
-  ui.navigate('workbench', { algorithm: algorithmPicker.value, replace: true });
-});
+function updateGraphDraft() {
+  if (pending) {
+    generation++;
+    pending.abort();
+    pending = null;
+    $('startBtn').disabled = false;
+    $('startBtn').textContent = runButtonLabel();
+    $('run-form').removeAttribute('aria-busy');
+  }
+  message(run ? '输入已更改，点击「重新运行」应用。' : '');
+}
 function invalidateInput() {
   const old = Boolean(run || pending);
   if (old) clearRun();
@@ -176,8 +250,14 @@ function invalidateInput() {
 for (const id of ['arrInput','targetInput','code-input']) $(id).addEventListener('input', invalidateInput);
 $('code-language').addEventListener('change', invalidateInput);
 $('fillDemo').addEventListener('click', () => {
+  if (selectedGraph()) {
+    updateGraphDraft();
+    graphForm.fillDemo();
+    message('示例顶点和边已填入，点「下一步」查看。');
+    return;
+  }
   clearRun();
-  $('arrInput').value = isSorting() || isCustom() ? '5,1,4,2' : '1,3,5,7,9';
+  $('arrInput').value = arraySearch(selectedAlgorithm)?.example ?? (isSorting() || isCustom() ? '5,1,4,2' : '1,3,5,7,9');
   $('targetInput').value = '7';
   if (isCustom()) $('code-input').value = customExample;
   message(isCustom() ? '示例已填入，可以修改代码或直接编译运行。' : '示例已填入，点击开始分析。');
@@ -189,7 +269,7 @@ $('visualization-panel').addEventListener('keydown',event=>{
   else if(event.key===' '){event.preventDefault();playback.getState().playing?playback.pause():playback.play();}
 });
 requestJSON('/api/health').then(data=>{$('service-status').textContent=data.mode==='mock'?'服务已连接 · 辅导为 Mock 开发模板':data.modelCallsEnabled?'服务已连接 · 辅导使用真实模型':'服务已连接 · 模型未配置，动画仍可使用';}).catch(()=>{$('service-status').textContent='服务未连接，请按启动说明重试。';});
-window.addEventListener('pagehide',()=>{generation++;pending?.abort();playback?.destroy();viz?.destroy();ui.destroy();agent.destroy();unsubscribeExercises();exercises.destroy();listeners.clear();},{once:true});
+window.addEventListener('pagehide',()=>{generation++;pending?.abort();playback?.destroy();viz?.destroy();ui.destroy();algorithmMenu.destroy();agent.destroy();unsubscribeExercises();exercises.destroy();listeners.clear();},{once:true});
 window.addEventListener('pageshow',event=>{if(event.persisted)location.reload();});
 mountWindow();
 publish(null);

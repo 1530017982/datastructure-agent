@@ -1,5 +1,7 @@
 // Adapted from prototype01/web/js/arrayView.js (render1D).
 // Draw the original SVG axes, ticks and value bars from a workbench snapshot.
+import { arraySearch } from '../workbench/array-search.js';
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 function svgElement(name, attributes, text) {
@@ -33,6 +35,8 @@ export function buildPrototypeArrayFrame(step, { previous, enter, reduced }) {
 
   const { array, variables, event, result } = step;
   const { left, right } = variables;
+  const search = arraySearch(step.algorithm);
+  const ranges = step.algorithm === 'block-search' ? variables.ranges : [];
   const sorting = step.algorithm === 'bubble-sort';
   const custom = step.algorithm === 'custom-array';
   const adjacent = previous && Math.abs(previous.stepIndex - step.stepIndex) === 1;
@@ -74,8 +78,10 @@ export function buildPrototypeArrayFrame(step, { previous, enter, reduced }) {
     const excluded = !sorting && !custom && (index < left || index > right);
     const cell = svgElement('g', { class: 'prototype-array-cell', 'data-index': index });
     if (excluded) cell.classList.add('is-excluded');
+    const found = event === 'found' && index === result;
+    if (search && !found && index === variables.index) cell.classList.add('is-comparing');
     if (index === variables.mid) cell.classList.add('is-mid');
-    if (event === 'found' && index === result) cell.classList.add('is-found');
+    if (found) cell.classList.add('is-found');
     if (custom && event === 'write' && index === variables.index) cell.classList.add('is-comparing');
     if (sorting) {
       if (index >= variables.sortedFrom) cell.classList.add('is-sorted');
@@ -106,7 +112,7 @@ export function buildPrototypeArrayFrame(step, { previous, enter, reduced }) {
     chart.append(cell);
 
     const wasExcluded = !sorting && !custom && previous && (index < previous.variables.left || index > previous.variables.right);
-    if (enter || (previous && excluded !== wasExcluded) || cell.classList.contains('is-found') ||
+    if (enter || (previous && excluded !== wasExcluded) || found ||
         (custom && event === 'write' && index === variables.index)) {
       if (!reduced) cell.animate([{ opacity: enter || !excluded ? 0.2 : 1 }, { opacity: excluded ? 0.4 : 1 }], {
         duration: 260, easing: 'ease-out', delay: enter ? (index % 8) * 35 : 0,
@@ -119,6 +125,22 @@ export function buildPrototypeArrayFrame(step, { previous, enter, reduced }) {
       });
     }
   });
+
+  for (const range of ranges) {
+    if (range.size === 0) continue;
+    const x = center(range.start) - spacing / 2;
+    const right = center(range.end) + spacing / 2;
+    const active = range.blockIndex === variables.blockIndex;
+    const label = '块 ' + range.blockIndex + ' · 最大 ' + range.max;
+    chart.append(
+      svgElement('path', { d: 'M ' + (x + 2) + ' 48 v -5 H ' + (right - 2) + ' v 5',
+        fill: 'none', stroke: active ? '#6650cf' : '#8796ab', 'stroke-width': active ? 2 : 1 }),
+      svgElement('text', { x: (x + right) / 2, y: 36, 'text-anchor': 'middle',
+        textLength: Math.min(range.size * spacing - 3, label.length * 7),
+        lengthAdjust: 'spacingAndGlyphs', 'data-array-block': range.blockIndex,
+        'data-active': active }, label)
+    );
+  }
 
   for (const { key, label, y } of MARKERS) {
     const x = markerX(variables, key, center);

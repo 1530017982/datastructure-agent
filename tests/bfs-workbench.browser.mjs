@@ -1,0 +1,199 @@
+import { selectWorkbenchAlgorithm } from './select-workbench-algorithm.mjs';
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const { chromium } = await import(process.env.TEST_PLAYWRIGHT_MODULE
+  ? pathToFileURL(process.env.TEST_PLAYWRIGHT_MODULE).href : 'playwright');
+const server = spawn(process.execPath, ['backend/src/server.js'], {
+  cwd: fileURLToPath(new URL('../', import.meta.url)),
+  env: { ...process.env, PORT: '0', HOST: '127.0.0.1', AGENT_MOCK: 'true', RATE_LIMIT: 'false' },
+  windowsHide: true
+});
+let browser;
+try {
+  const base = await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Backend startup timed out')), 10000);
+    server.once('error', reject);
+    server.stdout.on('data', chunk => {
+      const match = String(chunk).match(/http:\/\/127\.0\.0\.1:\d+/);
+      if (match) { clearTimeout(timer); resolve(match[0]); }
+    });
+  });
+  browser = await chromium.launch({ channel: process.env.TEST_BROWSER_CHANNEL || 'msedge', headless: true });
+  const page = await browser.newPage();
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto(base + '/#workbench?algorithm=bfs');
+  assert.equal(await page.locator('#algorithm-trigger').getAttribute('data-algorithm'), 'bfs');
+  assert.equal(await page.locator('#tutor-toggle').isVisible(), true);
+  const trigger = page.locator('#algorithm-trigger');
+  await trigger.hover();
+  const graphChapter = page.getByRole('button', { name: '第六章 · 图' });
+  await graphChapter.hover();
+  const graphMenu = page.locator('#algorithm-chapter-0');
+  await graphMenu.waitFor();
+  const graphBounds = await graphMenu.boundingBox();
+  const chapterBounds = await graphChapter.boundingBox();
+  assert.ok(graphBounds.x >= chapterBounds.x + chapterBounds.width);
+  await page.mouse.move(graphBounds.x + 12, graphBounds.y + 12, { steps: 8 });
+  assert.equal(await graphMenu.isVisible(), true);
+  assert.equal(await trigger.getAttribute('data-algorithm'), 'bfs');
+  await page.locator('[data-algorithm-choice="bfs"]').click();
+  assert.equal(await page.locator('#algorithm-chapters').isHidden(), true);
+  await trigger.focus();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowRight');
+  assert.equal(await page.locator('[data-algorithm-choice="bfs"]').evaluate(node => node === document.activeElement), true);
+  await page.keyboard.press('Escape');
+  assert.equal(await trigger.getAttribute('aria-expanded'), 'false');
+  await page.click('#fillDemo');
+  assert.match(await page.locator('#bfs-count').innerText(), /5/);
+  await page.click('#bfs-next');
+  await page.click('#bfs-back');
+  await page.click('#bfs-next');
+  assert.equal(await page.inputValue('#bfs-start'), 'A');
+  assert.deepEqual(await page.locator('#bfs-edges select').evaluateAll(items => items.map(item => item.value)),
+    ['A', 'B', 'A', 'C', 'B', 'D']);
+  const responsePending = page.waitForResponse(response => response.url().endsWith('/api/algorithms/bfs/runs'));
+  await page.click('#startBtn');
+  const response = await responsePending;
+  assert.equal(response.status(), 200);
+  const run = await response.json();
+  assert.deepEqual(run.result, ['A', 'B', 'C', 'D']);
+  const stepResponse = await page.request.get(base + '/api/runs/' + run.runId + '/steps/0');
+  assert.equal(stepResponse.status(), 200);
+  const isolated = page.locator('[data-bfs-node="E"] circle');
+  await isolated.waitFor();
+  assert.equal(await page.locator('#bfs-fields').isHidden(), true);
+  assert.equal(await page.locator('#fillDemo').isHidden(), true);
+  assert.equal(await page.locator('#bfs-run-detail').innerText(), '无向图 · 5 个顶点 · 3 条边 · 起点 A');
+  await page.click('#nextBtn');
+  assert.equal(await page.locator('#code-lines .active').getAttribute('data-line-id'), 'init-visited');
+  const explanation = page.locator('[data-explain-host]');
+  await explanation.getByRole('button', { name: '收起' }).click();
+  assert.equal(await explanation.locator('.bsviz-status').isHidden(), true);
+  await explanation.getByRole('button', { name: '展开' }).click();
+  assert.match(await explanation.locator('.bsviz-status').innerText(), /队列/);
+  await page.click('#prevBtn');
+  assert.equal(await page.locator('#code-lines .active').getAttribute('data-line-id'), 'init');
+  await page.click('[data-t="last"]');
+  assert.match(await page.locator('[data-explain-host]').innerText(), /A -> B -> C -> D/);
+  assert.equal(await isolated.getAttribute('fill'), '#fff');
+
+  const enqueue = run.steps.find(step => step.event === 'enqueue-neighbor');
+  await page.locator('[data-tl-ruler]').focus();
+  await page.keyboard.press('Home');
+  for (let step = 0; step < enqueue.stepIndex; step++) await page.keyboard.press('ArrowRight');
+  await page.click('#tutor-toggle');
+  assert.equal(await page.locator('.tutor-practice').isHidden(), true);
+  await page.fill('#question-input', '为什么这个顶点入队？');
+  const explainPending = page.waitForResponse(response => response.url().endsWith('/api/agent/explain'));
+  await page.click('#send-btn');
+  const explain = await explainPending;
+  assert.equal(explain.status(), 200);
+  const reply = await explain.json();
+  assert.equal(reply.runId, run.runId);
+  assert.equal(reply.stepIndex, enqueue.stepIndex);
+  assert.deepEqual(reply.stepRefs[0].variables, enqueue.variables);
+  assert.match(reply.answer, /BFS.*队列/);
+  await page.locator('.message.assistant').getByText(/BFS.*队列/).waitFor();
+  await page.click('#tutor-close');
+  await page.click('[data-t="last"]');
+
+  await page.click('#bfs-edit');
+  assert.equal(await page.inputValue('#bfs-start'), 'A');
+  assert.equal(await page.locator('#startBtn').innerText(), '重新运行');
+  await page.click('#bfs-back');
+  await page.fill('#bfs-nodes', 'A, C, D, E');
+  await page.click('#bfs-next');
+  assert.equal(await page.locator('#bfs-edges [aria-invalid="true"]').count(), 2);
+  await page.click('#startBtn');
+  assert.match(await page.locator('#msgBox').innerText(), /第 1 条边/);
+  assert.match(await page.locator('[data-explain-host]').innerText(), /A -> B -> C -> D/);
+
+  await page.click('#bfs-back');
+  await page.fill('#bfs-nodes', 'Solo');
+  await page.click('#bfs-next');
+  for (const button of await page.locator('#bfs-edges button').all()) {
+    await page.locator('#bfs-edges button').first().click();
+  }
+  await page.selectOption('#bfs-start', 'Solo');
+  const soloPending = page.waitForResponse(response => response.url().endsWith('/api/algorithms/bfs/runs'));
+  await page.click('#startBtn');
+  const solo = await (await soloPending).json();
+  assert.deepEqual(solo.result, ['Solo']);
+  await page.locator('#bfs-edit').waitFor();
+  assert.equal(await page.locator('#bfs-run-detail').innerText(), '无向图 · 1 个顶点 · 0 条边 · 起点 Solo');
+
+  const invalid = await page.request.post(base + '/api/algorithms/bfs/runs', {
+    data: { nodes: ['A'], edges: [['A', 'B']], start: 'A' }
+  });
+  assert.equal(invalid.status(), 400);
+  const graphExamples = [
+    ['dfs', false, true, null, result => assert.deepEqual(result, ['A', 'B', 'D', 'C'])],
+    ['prim', true, true, false, result => assert.equal(result.totalWeight, 8)],
+    ['kruskal', true, false, false, result => assert.equal(result.totalWeight, 8)],
+    ['dijkstra', true, true, null, result => assert.equal(result.E, 8)],
+    ['floyd', true, false, null, result => assert.equal(result[0], '0, 2, 3, 5, 8')],
+    ['topological-sort', false, false, true, result => assert.deepEqual(result, ['A', 'E', 'B', 'C', 'D'])]
+  ];
+  for (const [algorithm, weighted, hasStart, directed, checkResult] of graphExamples) {
+    await selectWorkbenchAlgorithm(page, algorithm);
+    await page.click('#fillDemo');
+    await page.click('#bfs-next');
+    assert.equal(await page.locator('.graph-weight').first().isVisible(), weighted, algorithm);
+    assert.equal(await page.locator('#bfs-start').isVisible(), hasStart, algorithm);
+    assert.equal(await page.locator('#bfs-directed').isVisible(), directed === null, algorithm);
+    if (directed !== null) {
+      assert.match(await page.locator('#graph-fixed-direction').innerText(), directed ? /有向图/ : /无向图/);
+    }
+    if (algorithm === 'dijkstra') {
+      const weight = page.locator('.graph-weight input').first();
+      await weight.fill('-1');
+      await page.click('#startBtn');
+      assert.match(await page.locator('#msgBox').innerText(), /非负权重/);
+      await weight.fill('2');
+    }
+    const pending = page.waitForResponse(response => response.url().endsWith('/api/algorithms/' + algorithm + '/runs'));
+    await page.click('#startBtn');
+    const response = await pending;
+    assert.equal(response.status(), 200, algorithm);
+    const graphRun = await response.json();
+    assert.equal(graphRun.graph.directed, directed ?? false);
+    assert.equal(Object.hasOwn(graphRun.graph, 'start'), hasStart);
+    assert.equal(graphRun.graph.edges[0].length, weighted ? 3 : 2);
+    checkResult(graphRun.result);
+    await page.locator('#bfs-edit').waitFor();
+    await page.click('[data-t="last"]');
+    assert.equal(await page.locator('#code-lines .active').getAttribute('data-line-id'), graphRun.steps.at(-1).lineId);
+    assert.equal(await page.locator('[data-explain-host] .bsviz-caption').innerText(), graphRun.steps.at(-1).description);
+    assert.ok((await page.locator('[data-explain-host] .bsviz-status').innerText()).length > 10, algorithm);
+    const agent = await page.request.post(base + '/api/agent/explain', {
+      data: { runId: graphRun.runId, stepIndex: 1, question: '这一步发生了什么？', hintLevel: 2 }
+    });
+    assert.equal(agent.status(), 200, algorithm);
+    assert.deepEqual((await agent.json()).stepRefs[0].variables, graphRun.steps[1].variables);
+  }
+  const cyclePending = page.waitForResponse(response => response.url().endsWith('/api/algorithms/topological-sort/runs'));
+  await page.click('#bfs-edit');
+  await page.click('#bfs-add-edge');
+  const closingEdge = page.locator('.bfs-edge').last().locator('select');
+  await closingEdge.nth(0).selectOption('D');
+  await closingEdge.nth(1).selectOption('A');
+  await page.click('#startBtn');
+  assert.equal((await (await cyclePending).json()).result, 'Has Cycle');
+  await page.locator('#bfs-edit').waitFor();
+  await page.click('[data-t="last"]');
+  assert.match(await page.locator('[data-explain-host]').innerText(), /存在环/);
+
+  await selectWorkbenchAlgorithm(page, 'binary-search');
+  await page.click('#fillDemo');
+  await page.click('#startBtn');
+  await page.locator('#code-lines [data-line-id="init-left"].active').waitFor();
+  assert.deepEqual(errors, []);
+  console.log('Graph workbench browser acceptance passed.');
+} finally {
+  await browser?.close();
+  server.kill();
+}

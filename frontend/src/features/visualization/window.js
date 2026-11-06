@@ -5,6 +5,11 @@
  */
 
 import { createVisualization } from './index.js';
+import { arraySearch } from '../workbench/array-search.js';
+import { graphAlgorithm } from '../workbench/graph-algorithms.js';
+import { createExplanationPanel } from './explanation-panel.js';
+import { describeGraphStep } from './graph-explanation.js';
+import { buildGraphPreview } from './bfs-preview.js';
 import { buildPrototypeArrayFrame } from './prototype-array.js';
 
 
@@ -27,13 +32,13 @@ const TEMPLATE = `
         <button class="bl-btn" type="button" data-viz-replay>重播入场动效</button>
       </span>
     </div>
-    <div class="viewport-body" data-viz-body tabindex="0" aria-label="数组视口，拖拽平移，滚轮缩放，Home自适应取景">
+    <div class="viewport-body" data-viz-body tabindex="0" aria-label="数组视口，拖拽平移，按住 Ctrl 滚动缩放，Home自适应取景">
       <div class="viewport-scene" data-viz-scene></div>
     </div>
     <div data-explain-host aria-label="本步解释"></div>
     <div class="viewport-legend" aria-label="指针图例"><span><b class="legend-left">L</b> 左边界</span><span><b class="legend-right">R</b> 右边界</span><span><b class="legend-mid">M</b> 比较位置</span><span>淡色：已排除</span></div>
     <div class="viewport-warn" data-viz-warn hidden></div>
-    <div class="viewport-hint">拖拽平移 · 滚轮缩放 · Home 复位</div>
+    <div class="viewport-hint">拖拽平移 · Ctrl + 滚轮缩放 · Home 复位</div>
   </section>
 
   <section class="timeline" aria-label="播放控制">
@@ -55,7 +60,7 @@ const TEMPLATE = `
         </button>
       </div>
     <div class="tl-ruler" data-tl-ruler tabindex="0" role="slider"
-         aria-label="步骤时间轴：点击或按左右方向键跳到某一步"
+         aria-label="步骤时间轴：点击、拖动或按左右方向键跳到某一步"
          aria-valuemin="1" aria-valuemax="1" aria-valuenow="1">
       <div class="tl-ticks" data-tl-ticks></div>
       <div class="tl-playhead" data-tl-playhead aria-hidden="true"></div>
@@ -77,8 +82,25 @@ export function createVizWindow(host, {
   root.dataset.win = 'viz';
   const sorting = algorithm === 'bubble-sort';
   const custom = algorithm === 'custom-array';
-  const useLegacy = !sorting && !custom && new URLSearchParams(window.location.search).get('viz') === 'legacy';
+  const graph = graphAlgorithm(algorithm);
+  const search = arraySearch(algorithm);
+  const useLegacy = !search && !graph && !sorting && !custom && new URLSearchParams(window.location.search).get('viz') === 'legacy';
   root.innerHTML = TEMPLATE;
+  if (graph) {
+    root.querySelector('.win-sub').textContent = graph.name + ' · 图视图';
+    root.querySelector('.vh-title').textContent = '图结构';
+    root.querySelector('.vh-sub').textContent = graph.title;
+    root.querySelector('[data-viz-body]').setAttribute('aria-label', '图视口，拖拽平移，按住 Ctrl 滚动缩放，Home自适应取景');
+    root.querySelector('[data-viz-replay]').hidden = true;
+    root.querySelector('.viewport-legend').hidden = true;
+  }
+  if (search) {
+    root.querySelector('.win-sub').textContent = search.title + ' · 数组视图';
+    root.querySelector('.vh-sub').textContent = search.title;
+    const legend = root.querySelector('.viewport-legend');
+    legend.setAttribute('aria-label', '查找图例');
+    legend.innerHTML = '<span><b class="legend-right">橙</b> 当前比较</span><span><b class="legend-mid">绿</b> 命中</span>';
+  }
   if (sorting) {
     root.querySelector('.win-sub').textContent = '冒泡排序 · 数组视图';
     root.querySelector('.vh-sub').textContent = '冒泡排序 · 升序';
@@ -119,6 +141,8 @@ export function createVizWindow(host, {
     fitFrame = requestAnimationFrame(() => { fitFrame = null; if (!destroyed) fitView(); });
   };
   let viz = null;
+  let graphPreview = null;
+  let graphExplanation = null;
   let currentRun = run;
   let state = { stepIndex: 0, total: 0, playing: false, canPrev: false, canNext: false };
 
@@ -132,7 +156,7 @@ export function createVizWindow(host, {
     const h = Math.round(body.clientHeight);
     const tiny = w < 240 || h < 170;
     warn.hidden = !tiny;
-    if (tiny) warn.textContent = `可视区只有 ${w}×${h}px，数组会被压得很小：可以点「全屏」放大查看。`;
+    if (tiny) warn.textContent = graph ? '可视区较小，可以点「全屏」放大查看。' : `可视区只有 ${w}×${h}px，数组会被压得很小：可以点「全屏」放大查看。`;
   }
 
   function fitView() {
@@ -169,6 +193,7 @@ export function createVizWindow(host, {
   body.addEventListener('pointerup', stopPan);
   body.addEventListener('pointercancel', stopPan);
   body.addEventListener('wheel', (event) => {
+    if (!event.ctrlKey || event.deltaY === 0) return;
     event.preventDefault();
     const rect = body.getBoundingClientRect();
     const cx = event.clientX - rect.left - rect.width / 2;
@@ -279,15 +304,31 @@ export function createVizWindow(host, {
     });
   }
 
+  let rulerPointer = null;
   function seekFromEvent(event) {
     if (!currentRun || !state.total) return;
     const rect = ruler.getBoundingClientRect();
     const ratio = (event.clientX - rect.left) / Math.max(1, rect.width);
     const total = Math.max(1, state.total);
     const index = Math.min(total - 1, Math.max(0, Math.floor(ratio * total)));
-    onSeek?.(index);
+    if (index !== state.stepIndex || state.playing) onSeek?.(index);
   }
-  ruler.addEventListener('pointerdown', seekFromEvent);
+  ruler.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0 || rulerPointer !== null || !currentRun || !state.total) return;
+    ruler.focus({ preventScroll: true });
+    ruler.setPointerCapture(event.pointerId);
+    rulerPointer = event.pointerId;
+    seekFromEvent(event);
+  });
+  ruler.addEventListener('pointermove', (event) => {
+    if (event.pointerId === rulerPointer) seekFromEvent(event);
+  });
+  function stopRulerDrag(event) {
+    if (event.pointerId === rulerPointer) rulerPointer = null;
+  }
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+    ruler.addEventListener(type, stopRulerDrag);
+  }
   ruler.addEventListener('keydown', (event) => {
     if (!currentRun || !state.total) return;
     // 时间轴自己处理左右/Home/End 之后必须阻止冒泡：
@@ -313,7 +354,12 @@ export function createVizWindow(host, {
     if (!nextRun) return;
     if (viz) viz.destroy();
     scene.replaceChildren();
-    viz = createVisualization(vizHost, {
+    if (graph) {
+      graphPreview = buildGraphPreview(nextRun.graph, graph.name);
+      scene.append(graphPreview.element);
+      graphExplanation = createExplanationPanel();
+      explainHost.replaceChildren(graphExplanation.explain);
+    } else viz = createVisualization(vizHost, {
       run: nextRun,
       explainContainer: explainHost,
       frameBuilder: useLegacy ? undefined : buildPrototypeArrayFrame,
@@ -324,6 +370,12 @@ export function createVizWindow(host, {
 
   function setStep(step, nextState = {}) {
     state = { ...state, ...nextState };
+    if (graphPreview && step) {
+      graphPreview.showStep(step);
+      const { action, detail } = describeGraphStep(currentRun, step);
+      graphExplanation.caption.textContent = action;
+      graphExplanation.status.textContent = detail;
+    }
     if (viz && step && (useLegacy || viz.getStep() !== step)) viz.showStep(step);
     const active = Boolean(currentRun && state.total > 0);
     const play = $('#playBtn');
@@ -353,7 +405,7 @@ export function createVizWindow(host, {
   if (run) bindRun(run);
   else {
     const empty = document.createElement('p'); empty.className = 'viz-empty';
-    empty.textContent = '填入示例并开始分析，查看真实执行过程。'; scene.append(empty);
+    empty.textContent = graph ? '填写顶点和边，再运行 ' + graph.name + '。' : '填入示例并开始分析，查看真实执行过程。'; scene.append(empty);
     applyView();
   }
   setStep(run?.steps[0] ?? null, {stepIndex:run ? 0 : -1,total:run?.steps.length ?? 0,canPrev:false,canNext:Boolean(run && run.steps.length > 1),playing:false});

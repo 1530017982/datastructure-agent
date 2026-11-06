@@ -8,7 +8,10 @@
 |---|---|---|
 | GET /api/health | 200；ok=true、stage=scaffold、implemented 包含 static-page/health/runs/exercises/agent/knowledge；mode 为 disabled/mock/deepseek，modelCallsEnabled 按实际模式返回 | 04 |
 | POST /api/algorithms/binary-search/runs | 200，创建并返回完整 run | 04 |
+| POST /api/algorithms/linear-search/runs | 200，创建并返回顺序查找 run | 01 |
+| POST /api/algorithms/block-search/runs | 200，创建并返回分块查找 run | 01 |
 | POST /api/algorithms/bubble-sort/runs | 200，创建并返回冒泡排序 run | 01 |
+| POST /api/algorithms/{图算法}/runs | 200，创建并返回图算法 run | 01 |
 | POST /api/algorithms/custom-array/runs | 本机 Windows，编译并执行自定义数组代码，200 返回实际执行 run | 01 |
 | GET /api/runs/:runId | 200，返回同一完整 run | 04 |
 | GET /api/runs/:runId/steps/:stepIndex | 200，返回 `{runId,step}` | 04 |
@@ -42,6 +45,12 @@ stepIndex 使用十进制非负整数字符串；超出已存在 run 的步骤�
 
 冒泡排序使用 `{"array":[5,1,4,2]}` 创建运行。接受 0 到 24 个安全整数，允许乱序、负数和重复值。它共用运行和步骤查询接口，`algorithm` 为 `bubble-sort`，`sourceVersion` 为 `bubble-c-v1`，最终 `result` 为升序数组。每一步保存当前 `array`、说明 `description` 和 `variables: {pass, index, sortedFrom}`。其中 `index` 是相邻比较的左下标，无比较时为 `null`，`sortedFrom` 起为已就位区间。事件为 `init`、`compare`、`swap`、`pass-end`、`sorted`。步骤问答使用当前和上一步的数组，回复的 `stepRefs` 包含 `algorithm`、`array` 和排序变量。冒泡排序题可独立作答，和二分查找共用判分接口与本机记录。
 
+顺序查找接受 `{array, target}`，允许无序、重复和空数组，命中时返回第一个匹配下标。分块查找接受 `{blocks, target}`，最多 64 块，跳过空块；非空块之间须满足前块最大值不大于后块最小值。两者的工作台与 API 均最多接受 100 个安全整数元素，未命中返回 -1。分块查找结果使用展开数组的零基下标。分块步骤保留最大值索引和块边界，两个接口均复用步骤查询与「问一步」。
+
+图算法标识为 `bfs`、`dfs`、`prim`、`kruskal`、`dijkstra`、`floyd` 和 `topological-sort`。请求接受 `{nodes, edges, directed, start}`。顶点名须唯一，最多 30 个（Floyd 最多 8 个），边最多 120 条。BFS、DFS、拓扑排序使用 `[from, to]`；其他图算法使用 `[from, to, weight]`，权重为有限数值，绝对值不超过 10¹²。Dijkstra 拒绝负权。BFS、DFS、Prim、Dijkstra 需要起点；Prim、Kruskal 固定无向，拓扑排序固定有向。可选方向默认无向。边端点和起点须在顶点列表内。
+
+运行结果的 `graph` 保存去重后的边和完整顶点列表，包括孤立顶点。各算法共用运行与步骤查询接口。步骤使用引擎原有的 `variables`、`description` 和 `result`。Floyd 距离矩阵的行列按顶点输入顺序排列。拓扑排序检测到环时，运行正常结束，结果为 `Has Cycle`。
+
 自定义数组代码接受 `{language, source, array}`，语言为 `c` 或 `cpp`，代码最多 5000 字符，数组最多 24 个 32 位整数。入口为单个 `void sort(int a[], int n)` 函数，支持初始化的整数变量、数组读写、带花括号的条件和循环。后端检查语法后插入数组访问检查与记录，再调用 `third_party/open-watcom` 下的本机编译器。运行只接受回环连接，支持用 `http://127.0.0.1:3000` 打开。结果共用运行与步骤查询接口，`algorithm` 为 `custom-array`，事件为 `init`、`condition`、`write` 和 `finished`。每步包含原始源码行、数组和 `variables: {line, index, writes}`。数组越界、运算错误或超出执行限制返回 422，编译器缺失返回 503。
 
 ## 题目与判分
@@ -74,7 +83,7 @@ POST /api/exercises/check 输入示例：
 
 显式AGENT_MOCK=true仍优先使用标注Mock的免费模板；关闭Mock且有Key时，每个通过参数/真实运行/额度检查的新问题直接交给DeepSeek，不做知识检索、问法识别或无资料拒答；无Key时503。成功请求原ID在保留窗口内重试可重放缓存，不重复调用。
 
-prompt提供当前数组/目标/步骤/变量、上一步真实快照、展示代码全部sourceLines/高亮lineId/sourceVersion及最近最多10轮问答。历史只作上下文，不覆盖服务端事实。成功回复包含runId/stepIndex/hintLevel/answer/stepRefs/usage；兼容字段sourceRefs=[]、knowledgeUsed=false、retrieval={method:none,status:disabled,matchedCardIds:[],contextCardId:null,matches:[]}。stepRefs不再含knowledgeCard。聊天界面不显示知识卡出处。
+prompt 提供当前运行输入（图或数组及目标）、步骤和变量、上一步真实快照、展示代码全部sourceLines/高亮lineId/sourceVersion及最近最多10轮问答。历史只作上下文，不覆盖服务端事实。成功回复包含runId/stepIndex/hintLevel/answer/stepRefs/usage；兼容字段sourceRefs=[]、knowledgeUsed=false、retrieval={method:none,status:disabled,matchedCardIds:[],contextCardId:null,matches:[]}。图算法的 stepRefs 包含 algorithm、event 和图步骤的 variables。stepRefs 不含 knowledgeCard。聊天界面不显示知识卡出处。
 
 conversationId和turnId须同时提供，均为8至80位字母/数字/下划线/连字符；不传时保持无历史单轮兼容。服务端按socket来源+runId+conversationId隔离，最多10轮成功完整问答、总8000个UTF-16字符，超限移除最早整轮。1小时无活动过期，最多200个会话，重启清空；切步骤保留，新运行换ID隔离。失败不入历史，成功回复不再受knowledgeUsed控制。
 

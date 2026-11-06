@@ -39,12 +39,15 @@ export function createAgentChat(container, { embedded = false, onBeforeSend = ()
   function controls() {
     send.disabled = busy || (embedded && !context);
     send.textContent = busy ? '等待回复…' : '发送';
-    send.title = busy ? '回复完成后可发送下一条问题' : embedded && !context ? '先填入数组并点击“开始分析”' : '发送问题';
+    send.title = busy ? '回复完成后可发送下一条问题' : embedded && !context ? '请先运行算法' : '发送问题';
     question.disabled = false;
     question.placeholder = embedded && !context ? '可以先写问题，开始分析后再发送。'
+      : context?.algorithm === 'linear-search' ? '目前比较到哪个元素了？'
+      : context?.algorithm === 'block-search' ? '为什么选中这一块？'
+      : context?.algorithm === 'bfs' ? '这一步为什么这样更新队列？'
       : context?.algorithm === 'bubble-sort' ? '为什么要比较或交换这两个元素？' : '为什么下一步更新左边界？';
   }
-  function label() { $('current-step-label').textContent = stepInput.value === '' ? (embedded ? '可以先写问题；填入数组并点击“开始分析”后即可发送。' : '先创建一次运行，再针对步骤提问。') : `当前选中：第 ${Number(stepInput.value)+1} 步`; }
+  function label() { $('current-step-label').textContent = stepInput.value === '' ? (embedded ? '可以先写问题；运行算法后即可发送。' : '先创建一次运行，再针对步骤提问。') : `当前选中：第 ${Number(stepInput.value)+1} 步`; }
   async function refreshUsage(sid = runInput.value.trim()) {
     const ticket = ++usageTicket;
     try {
