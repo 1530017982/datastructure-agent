@@ -12,14 +12,14 @@
 
 | 完成 | 算法或演示项 | 积分 | 填写位置 | 具体交付与验收 |
 |---|---|---:|---|---|
-| ☐ | 顺序查找 | 1 | [实现文件](../../../../shared/algorithms/final/d/linear-search.js) | 记录逐项比较和命中位置；覆盖空表、重复键及未命中。 |
-| ☐ | 分块查找 | 1 | [实现文件](../../../../shared/algorithms/final/d/block-search.js) | 展示索引选块和块内扫描；覆盖边界键、空块策略和未命中。 |
-| ☐ | 平衡二叉树 | 3 | [实现文件](../../../../shared/algorithms/final/d/avl-tree.js) | 实现查找和插入，展示高度、失衡点及四类旋转；核对平衡因子。 |
-| ☐ | 红黑树 | 3 | [实现文件](../../../../shared/algorithms/final/d/red-black-tree.js) | 实现查找和插入，展示旋转、变色及根节点状态；检查红红相邻与黑高。 |
-| ☐ | 哈希线性探测 | 1 | [实现文件](../../../../shared/algorithms/final/d/hash-linear-probing.js) | 记录初始槽和后续探测；覆盖冲突、回绕和表满终止。 |
-| ☐ | 哈希平方探测 | 1 | [实现文件](../../../../shared/algorithms/final/d/hash-quadratic-probing.js) | 写清探测公式、容量和次数上限；用重复访问槽验证终止。 |
-| ☐ | 哈希双散列 | 2 | [实现文件](../../../../shared/algorithms/final/d/hash-double-hashing.js) | 展示两个哈希值及步长；核对步长与表长的约束、未命中和终止。 |
-| ☐ | 哈希拉链法 | 2 | [实现文件](../../../../shared/algorithms/final/d/hash-chaining.js) | 展示桶定位和链内比较；覆盖同桶多键及空桶查询。 |
+| ☑ | 顺序查找 | 1 | [实现文件](../../../../shared/algorithms/final/d/linear-search.js) | 记录逐项比较和命中位置；覆盖空表、重复键及未命中。 |
+| ☑ | 分块查找 | 1 | [实现文件](../../../../shared/algorithms/final/d/block-search.js) | 展示索引选块和块内扫描；覆盖边界键、空块策略和未命中。 |
+| ☑ | 平衡二叉树 | 3 | [实现文件](../../../../shared/algorithms/final/d/avl-tree.js) | 实现查找和插入，展示高度、失衡点及四类旋转；核对平衡因子。 |
+| ☑ | 红黑树 | 3 | [实现文件](../../../../shared/algorithms/final/d/red-black-tree.js) | 实现查找和插入，展示旋转、变色及根节点状态；检查红红相邻与黑高。 |
+| ☑ | 哈希线性探测 | 1 | [实现文件](../../../../shared/algorithms/final/d/hash-linear-probing.js) | 记录初始槽和后续探测；覆盖冲突、回绕和表满终止。 |
+| ☑ | 哈希平方探测 | 1 | [实现文件](../../../../shared/algorithms/final/d/hash-quadratic-probing.js) | 写清探测公式、容量和次数上限；用重复访问槽验证终止。 |
+| ☑ | 哈希双散列 | 2 | [实现文件](../../../../shared/algorithms/final/d/hash-double-hashing.js) | 展示两个哈希值及步长；核对步长与表长的约束、未命中和终止。 |
+| ☑ | 哈希拉链法 | 2 | [实现文件](../../../../shared/algorithms/final/d/hash-chaining.js) | 展示桶定位和链内比较；覆盖同桶多键及空桶查询。 |
 | | **合计** | **14** | | |
 
 ## 具体步骤
