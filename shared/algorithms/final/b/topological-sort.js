@@ -1,12 +1,10 @@
 import { validateGraphInput } from './validate-util.js';
 
-const SOURCE_VERSION = 'topo-c-v1';
+const SOURCE_VERSION = 'topo-c-v2';
 const SOURCE_LINES = [
   { lineId: 'init', text: 'void topoSort(int graph[][MAX], int n) {' },
   { lineId: 'init-degree', text: '  int inDegree[MAX] = {0};' },
-  { lineId: 'calc-degree', text: '  // 统计入度' },
   { lineId: 'init-queue', text: '  queue<int> q;' },
-  { lineId: 'push-zero', text: '  // 零入度入队' },
   { lineId: 'loop', text: '  while (!q.empty()) {' },
   { lineId: 'pop', text: '    int u = q.front(); q.pop();' },
   { lineId: 'loop-neighbors', text: '    for (int v = 0; v < n; v++) {' },
@@ -49,13 +47,13 @@ export function generateTopoSteps(input) {
 
   record('init', 'init', `初始化拓扑排序。`);
   record('init-degree', 'init-degree', `初始化入度表。`);
-  record('calc-degree', 'calc-degree', `统计每个节点的入度。`);
+  record('calc-degree', 'init-degree', `统计每个节点的入度。`);
 
   for (const node of nodes) {
     if (inDegree.get(node) === 0) queue.push(node);
   }
   record('init-queue', 'init-queue', `创建零入度队列。`);
-  record('push-zero', 'push-zero', `将入度为 0 的节点加入队列：${queue.join(', ')}。`);
+  record('push-zero', 'init-queue', `将入度为 0 的节点加入队列：${queue.join(', ')}。`);
   record('loop', 'loop', `进入 while 循环。`);
 
   while (queue.length > 0) {

@@ -4,22 +4,21 @@
 // 展示代码接收的索引与执行逻辑一致：一维数组 + 每块起点/块长/块最大值，块长不限。
 import { createStepFactory, requireBlockList, requireIntegerArray, requireSafeInteger } from './util.js';
 
-const SOURCE_VERSION = 'd-block-c-v1';
+const SOURCE_VERSION = 'd-block-c-v2';
 
 const SOURCE_LINES = [
   { lineId: 'function-start', text: 'int block_search(const long long a[], const int starts[], const int sizes[], const long long blockMax[], int blockCount, long long target) {' },
   { lineId: 'index-loop', text: '  for (int b = 0; b < blockCount; b++) {' },
-  { lineId: 'index-skip', text: '    if (sizes[b] == 0) { continue; } /* 空块跳过 */' },
-  { lineId: 'index-compare', text: '    if (blockMax[b] < target) { continue; } /* 整块都小于目标 */' },
-  { lineId: 'block-selected', text: '    /* 候选块确定，进入块内扫描 */' },
+  { lineId: 'index-skip', text: '    if (sizes[b] == 0) { continue; }' },
+  { lineId: 'index-compare', text: '    if (blockMax[b] < target) { continue; }' },
   { lineId: 'inner-loop', text: '    for (int i = 0; i < sizes[b]; i++) {' },
   { lineId: 'inner-compare', text: '      if (a[starts[b] + i] == target) {' },
   { lineId: 'found', text: '        return starts[b] + i;' },
   { lineId: 'inner-compare-end', text: '      }' },
   { lineId: 'inner-loop-end', text: '    }' },
-  { lineId: 'not-found-block', text: '    return -1; /* 块间值域分离，块内没有就不可能在后续块 */' },
+  { lineId: 'not-found-block', text: '    return -1;' },
   { lineId: 'index-loop-end', text: '  }' },
-  { lineId: 'not-found', text: '  return -1; /* 所有块最大值都小于目标 */' },
+  { lineId: 'not-found', text: '  return -1;' },
   { lineId: 'function-end', text: '}' },
 ];
 
@@ -104,7 +103,7 @@ export function generateBlockSearchSteps(input) {
     if (range.max < target) continue;
 
     add({
-      event: 'block-selected', lineId: 'block-selected', array: flat, target,
+      event: 'block-selected', lineId: 'inner-loop', array: flat, target,
       variables: { ...view(), blockIndex: range.blockIndex, blockMax: range.max, index: null, current: null, comparisons },
       description: `选定第 ${range.blockIndex} 块，块内下标范围 ${range.start}～${range.end}，开始逐项扫描。`,
     });
