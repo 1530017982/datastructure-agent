@@ -16,7 +16,7 @@ const SOURCE_LINES = [
 
 export function generateDijkstraSteps(input) {
   const { nodes, edges, start } = input;
-  const directed = input.directed || false; // 修复 2：读取有向图配置
+  const directed = input.directed || false; 
   
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
@@ -27,8 +27,11 @@ export function generateDijkstraSteps(input) {
     const ui = nodeIndex.get(u);
     const vi = nodeIndex.get(v);
     if (ui !== undefined && vi !== undefined) {
-      graph[ui][vi] = w;
-      if (!directed) graph[vi][ui] = w; // 修复 2：只有无向图才反向赋值
+      // 修复：取平行边中较小的权重
+      graph[ui][vi] = Math.min(graph[ui][vi], w);
+      if (!directed) {
+        graph[vi][ui] = Math.min(graph[vi][ui], w);
+      }
     }
   }
 

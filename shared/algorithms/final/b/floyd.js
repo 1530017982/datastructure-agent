@@ -13,7 +13,7 @@ const SOURCE_LINES = [
 
 export function generateFloydSteps(input) {
   const { nodes, edges } = input;
-  const directed = input.directed || false; // 修复 2：有向图支持
+  const directed = input.directed || false; 
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
 
@@ -34,13 +34,13 @@ export function generateFloydSteps(input) {
   const steps = [];
   function formatMatrix() { return dist.map(row => row.map(val => val === Infinity ? '∞' : val).join(', ')); }
 
-  function record(event, lineId, description, k = null, i = null, j = null) {
+  function record(event, lineId, description, k = null, i = null, j = null, customResult = null) {
     const done = event === 'end';
     steps.push({
       schemaVersion: '1.0', algorithm: 'floyd', stepIndex: steps.length,
       sourceVersion: SOURCE_VERSION, event, lineId,
       variables: { matrix: formatMatrix(), currentK: k !== null ? nodes[k] : null, currentI: i !== null ? nodes[i] : null, currentJ: j !== null ? nodes[j] : null },
-      description, done, result: done ? formatMatrix() : null
+      description, done, result: done ? customResult : null
     });
   }
 
@@ -69,12 +69,13 @@ export function generateFloydSteps(input) {
     if (dist[i][i] < 0) hasNegativeCycle = true;
   }
 
-  // 修复 6：最后一步和返回结果必须一致
+  // 修复：最后一步 result 和返回值强制一致
+  const finalResult = hasNegativeCycle ? 'Has Negative Cycle' : formatMatrix();
   if (hasNegativeCycle) {
-    record('end', 'end', `对角线发现负数，存在负权环！`);
+    record('end', 'end', `对角线发现负数，存在负权环！`, null, null, null, finalResult);
   } else {
-    record('end', 'end', `Floyd 算法结束，最短路径矩阵计算完毕。`);
+    record('end', 'end', `Floyd 算法结束，最短路径矩阵计算完毕。`, null, null, null, finalResult);
   }
 
-  return { steps, result: hasNegativeCycle ? 'Has Negative Cycle' : formatMatrix(), sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES };
+  return { steps, result: finalResult, sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES };
 }
