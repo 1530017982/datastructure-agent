@@ -13,7 +13,6 @@ const SOURCE_LINES = [
   { lineId: 'check-rank', text: '    if (rank[rootX] < rank[rootY]) {' },
   { lineId: 'merge-x-to-y', text: '      parent[rootX] = rootY;' },
   { lineId: 'check-rank-equal', text: '    } else if (rank[rootX] == rank[rootY]) {' },
-  // 修复 4：补全等秩时的代码高亮展示
   { lineId: 'merge-equal', text: '      parent[rootY] = rootX; rank[rootX]++;' },
   { lineId: 'merge-y-to-x', text: '    } else { parent[rootY] = rootX; }' },
   { lineId: 'end', text: '}' }
@@ -26,16 +25,15 @@ export function generateUnionFindSteps(input) {
   const steps = [];
   const failedOps = []; 
 
-  function record(event, lineId, description, currentOp = null, errorMsg = null) {
+  function record(event, lineId, description, currentOp = null, errorMsg = null, findPath = null) {
     const done = event === 'end';
     const dsuState = dsu.getState();
     
     steps.push({
       schemaVersion: '1.0', algorithm: 'union-find', stepIndex: steps.length,
       sourceVersion: SOURCE_VERSION, event, lineId,
-      variables: { parent: dsuState.parent, rank: dsuState.rank, setCount, currentOp, errorMsg },
-      description, done, 
-      result: done ? { setCount, failedOps } : null 
+      variables: { parent: dsuState.parent, rank: dsuState.rank, setCount, currentOp, errorMsg, findPath },
+      description, done, result: done ? { setCount, failedOps } : null 
     });
   }
 
@@ -57,11 +55,17 @@ export function generateUnionFindSteps(input) {
 
     record('find', 'find', `开始处理 ${type}(${x}${y ? ', ' + y : ''})。查找 ${x} 的根。`, op);
       
+    const findPath = [x];
+    let curr = x;
+    while (dsu.parent.get(curr) !== curr) {
+      curr = dsu.parent.get(curr);
+      findPath.push(curr);
+    }
     const rootX = dsu.find(x);
-    record('find-root', 'find-root', `找到 ${x} 的根：${rootX}。`, op);
+    record('find-root', 'find-root', `找到 ${x} 的根：${rootX}。路径：${findPath.join(' -> ')}`, op, null, findPath);
 
     if (type === 'find') {
-      record('path-compress', 'path-compress', `${x} 指向根 ${rootX}。`, op);
+      record('path-compress', 'path-compress', `${x} 指向根 ${rootX}。`, op, null, findPath);
       continue;
     }
 

@@ -17,7 +17,7 @@ const SOURCE_LINES = [
 
 export function generateDijkstraSteps(input) {
   const { nodes, start, directed } = input;
-  const validEdges = validateGraphInput(input, 'Dijkstra',true);
+  const validEdges = validateGraphInput(input, 'Dijkstra', true);
   
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
@@ -37,9 +37,11 @@ export function generateDijkstraSteps(input) {
 
   function record(event, lineId, description, currentNode = null, currentEdge = null) {
     const done = event === 'end';
-    const distDisplay = {};
+    // 修复：使用 Object.create(null) 防止 __proto__ 丢失
+    const distDisplay = Object.create(null);
     nodes.forEach((node, i) => { distDisplay[node] = dist[i] === Infinity ? '∞' : dist[i]; });
-    const prevDisplay = {};
+    
+    const prevDisplay = Object.create(null);
     nodes.forEach((node, i) => { prevDisplay[node] = previous[i]; });
 
     steps.push({

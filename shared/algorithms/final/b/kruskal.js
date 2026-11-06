@@ -15,12 +15,13 @@ const SOURCE_LINES = [
 ];
 
 export function generateKruskalSteps(input) {
-  const { nodes, directed } = input;
-  const validEdges = validateGraphInput(input, 'Kruskal',true);
+  const { nodes } = input;
+  const validEdges = validateGraphInput(input, 'Kruskal', true);
 
   const n = nodes.length;
   const dsu = new DSU(nodes);
-  const edgeList = validEdges.map(e => ({ u: e.u, v: e.v, w: e.w }));
+  // 记录原始索引以确保同权边稳定排序
+  const edgeList = validEdges.map((e, index) => ({ u: e.u, v: e.v, w: e.w, originalIndex: index }));
   
   const steps = [];
   const selectedEdges = [];
@@ -34,14 +35,22 @@ export function generateKruskalSteps(input) {
     steps.push({
       schemaVersion: '1.0', algorithm: 'kruskal', stepIndex: steps.length,
       sourceVersion: SOURCE_VERSION, event, lineId,
-      variables: { selectedEdges: selectedEdges.map(e => `${e.u}-${e.v}(${e.w})`), totalWeight, currentEdge, isForest, parent: dsuState.parent, rank: dsuState.rank },
+      variables: { 
+        sortedEdges: edgeList.map(e => `${e.u}-${e.v}(${e.w})`),
+        selectedEdges: selectedEdges.map(e => `${e.u}-${e.v}(${e.w})`), 
+        totalWeight, currentEdge, isForest, parent: dsuState.parent, rank: dsuState.rank 
+      },
       description, done, result: done ? { totalWeight, selectedEdges: selectedEdges.map(e => `${e.u}-${e.v}`), isForest } : null
     });
   }
 
   record('init', 'init', `初始化 Kruskal 算法。`);
-  edgeList.sort((a, b) => a.w - b.w);
-  record('sort', 'sort', `将所有边按权重从小到大排序。`);
+  // 修复：增加 originalIndex 比较作为第二排序条件，确保同权边顺序稳定
+  edgeList.sort((a, b) => {
+    if (a.w !== b.w) return a.w - b.w;
+    return a.originalIndex - b.originalIndex;
+  });
+  record('sort', 'sort', `将所有边按权重从小到大稳定排序。`);
   record('init-dsu', 'init-dsu', `初始化并查集，每个节点各自为一个集合。`);
   record('loop', 'loop', `开始遍历排序后的边。`);
 

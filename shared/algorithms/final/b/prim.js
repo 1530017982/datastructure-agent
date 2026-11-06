@@ -39,18 +39,17 @@ export function generatePrimSteps(input) {
 
   function record(event, lineId, description, currentNode = null, currentEdge = null) {
     const done = event === 'end';
-    const keyDisplay = {};
+    // 修复：使用 Object.create(null) 防止 __proto__ 丢失
+    const keyDisplay = Object.create(null);
     nodes.forEach((node, i) => { keyDisplay[node] = key[i] === Infinity ? '∞' : key[i]; });
-    const parentDisplay = {};
+    const parentDisplay = Object.create(null);
     nodes.forEach((node, i) => { parentDisplay[node] = parent[i]; });
 
     steps.push({
       schemaVersion: '1.0', algorithm: 'prim', stepIndex: steps.length,
       sourceVersion: SOURCE_VERSION, event, lineId,
       variables: { key: keyDisplay, parent: parentDisplay, inMST: Array.from(inMST), totalWeight, currentNode, currentEdge },
-      description, done, 
-      // 修复 2：明确在最终结果标明是否连通
-      result: done ? { totalWeight, mstNodes: Array.from(inMST), isDisconnected } : null
+      description, done, result: done ? { totalWeight, mstNodes: Array.from(inMST), isDisconnected } : null
     });
   }
 

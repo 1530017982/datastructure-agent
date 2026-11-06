@@ -6,6 +6,7 @@ const SOURCE_LINES = [
   { lineId: 'init-visited', text: '  int visited[MAX] = {0};' },
   { lineId: 'init-stack', text: '  int stack[MAX], top = -1;' },
   { lineId: 'push-start', text: '  stack[++top] = start;' },
+  { lineId: 'mark-start', text: '  visited[start] = 1;' },
   { lineId: 'loop', text: '  while (top >= 0) {' },
   { lineId: 'peek', text: '    int u = stack[top];' },
   { lineId: 'check-neighbor', text: '    if (hasUnvisitedNeighbor(u)) {' },
@@ -18,7 +19,7 @@ const SOURCE_LINES = [
 
 export function generateDfsSteps(input) {
   const { nodes, start, directed } = input;
-  const validEdges = validateGraphInput(input, 'DFS',false);
+  const validEdges = validateGraphInput(input, 'DFS', false);
   
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
@@ -51,9 +52,11 @@ export function generateDfsSteps(input) {
   record('init-stack', 'init-stack', `创建空栈 stack。`);
 
   stack.push(start);
+  record('push-start', 'push-start', `起点 ${start} 入栈。`, start);
+  
   visited.add(start); 
   discoveryOrder.push(start); 
-  record('push-start', 'push-start', `起点 ${start} 入栈并标记为已访问。`, start);
+  record('mark-start', 'mark-start', `标记起点 ${start} 为已访问。`, start);
 
   record('loop', 'loop', `进入 while 循环，检查栈是否为空。`);
 
@@ -86,7 +89,6 @@ export function generateDfsSteps(input) {
       record('loop', 'loop', `当前栈顶为 ${stack[stack.length - 1]}。`, stack[stack.length - 1]);
     }
   }
-
   record('end', 'end', `栈为空，DFS 遍历结束。访问顺序：${discoveryOrder.join(' -> ')}`);
   return { steps, result: discoveryOrder, sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES };
 }

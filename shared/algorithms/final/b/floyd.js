@@ -14,7 +14,7 @@ const SOURCE_LINES = [
 
 export function generateFloydSteps(input) {
   const { nodes, directed } = input;
-  const validEdges = validateGraphInput(input, 'Floyd',true);
+  const validEdges = validateGraphInput(input, 'Floyd', true);
   
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
@@ -25,8 +25,9 @@ export function generateFloydSteps(input) {
   for (const { u, v, w } of validEdges) {
     const ui = nodeIndex.get(u);
     const vi = nodeIndex.get(v);
-    dist[ui][vi] = w;
-    if (!directed) dist[vi][ui] = w;
+    // 校验器已经去重并取最小权重，这里直接赋值
+    dist[ui][vi] = Math.min(dist[ui][vi], w);
+    if (!directed) dist[vi][ui] = Math.min(dist[vi][ui], w);
   }
 
   const steps = [];
@@ -43,7 +44,7 @@ export function generateFloydSteps(input) {
   }
 
   record('init', 'init', `初始化 Floyd 距离矩阵。`);
-  record('init-dist', 'init-dist', `矩阵初始化完成，自身距离为0，直连边填入权重。`);
+  record('init-dist', 'init-dist', `矩阵初始化完成，自身距离为0，平行边已取最小权重。`);
 
   for (let k = 0; k < n; k++) {
     record('loop-k', 'loop-k', `当前中转点 k = ${nodes[k]}。`, k);
