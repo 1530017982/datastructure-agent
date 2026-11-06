@@ -17,8 +17,7 @@ const SOURCE_LINES = [
 
 export function generateBfsSteps(input) {
   const { nodes, edges, start } = input;
-  const directed = input.directed || false; // 修复：获取有向图标识
-  
+  const directed = input.directed || false;
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
   const graph = Array.from({ length: n }, () => Array(n).fill(0));
@@ -28,7 +27,7 @@ export function generateBfsSteps(input) {
     const vi = nodeIndex.get(v);
     if (ui !== undefined && vi !== undefined) {
       graph[ui][vi] = 1;
-      if (!directed) graph[vi][ui] = 1; // 修复：只有无向图才双向连边
+      if (!directed) graph[vi][ui] = 1;
     }
   }
 
@@ -53,13 +52,15 @@ export function generateBfsSteps(input) {
     return { steps, result: [], sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES };
   }
 
-  record('init-visited', 'init-visited', `创建 visited 数组，所有节点标记为未访问。`);
+  record('init-visited', 'init-visited', `创建 visited 数组，标记未访问。`);
   record('init-queue', 'init-queue', `创建空队列 queue。`);
   
+  // 修复 2：动作执行后，立刻记录快照
   visited.add(start);
   discoveryOrder.push(start);
-  queue.push(start);
   record('mark-start', 'mark-start', `标记起点 ${start} 为已访问。`, start);
+
+  queue.push(start);
   record('enqueue-start', 'enqueue-start', `将起点 ${start} 入队。`, start);
 
   record('loop', 'loop', `进入 while 循环，检查队列是否为空。`);
@@ -74,11 +75,14 @@ export function generateBfsSteps(input) {
       if (graph[ui][v] === 1) {
         const neighbor = nodes[v];
         record('check-neighbor', 'check-neighbor', `发现邻接点 ${neighbor}，检查是否已访问。`, u, [u, neighbor]);
+        
         if (!visited.has(neighbor)) {
+          // 修复 2：先标记，再入队，动作和快照严格绑定
           visited.add(neighbor);
           discoveryOrder.push(neighbor);
-          queue.push(neighbor);
           record('mark-neighbor', 'mark-neighbor', `${neighbor} 未被访问，标记为已访问。`, u, [u, neighbor]);
+          
+          queue.push(neighbor);
           record('enqueue-neighbor', 'enqueue-neighbor', `将 ${neighbor} 入队。`, u, [u, neighbor]);
         } else {
           record('skip-neighbor', 'check-neighbor', `${neighbor} 已被访问过，跳过（防止重复入队）。`, u, [u, neighbor]);

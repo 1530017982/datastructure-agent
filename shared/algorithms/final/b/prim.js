@@ -16,6 +16,7 @@ const SOURCE_LINES = [
 
 export function generatePrimSteps(input) {
   const { nodes, edges, start } = input;
+  const directed = input.directed || false;
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
   const graph = Array.from({ length: n }, () => Array(n).fill(Infinity));
@@ -24,15 +25,18 @@ export function generatePrimSteps(input) {
     const ui = nodeIndex.get(u);
     const vi = nodeIndex.get(v);
     if (ui !== undefined && vi !== undefined) {
-      graph[ui][vi] = w;
-      graph[vi][ui] = w; // 无向图
+      // 修复 1：取平行边中较小的权重
+      graph[ui][vi] = Math.min(graph[ui][vi], w);
+      if (!directed) {
+        graph[vi][ui] = Math.min(graph[vi][ui], w);
+      }
     }
   }
 
   const steps = [];
-  const key = Array(n).fill(Infinity); // 记录连接树内树外的最小边权
-  const inMST = new Set(); // 已选入生成树的顶点
-  const parent = Array(n).fill(null); // 记录前驱（父亲节点）
+  const key = Array(n).fill(Infinity);
+  const inMST = new Set();
+  const parent = Array(n).fill(null);
   let totalWeight = 0;
 
   function record(event, lineId, description, currentNode = null, currentEdge = null) {
@@ -65,14 +69,10 @@ export function generatePrimSteps(input) {
   const startIdx = nodeIndex.get(start);
   key[startIdx] = 0;
   record('start-key', 'start-key', `起点 ${start} 的 key 设为 0，作为生成树的根。`);
-
   record('loop', 'loop', `进入主循环。`);
 
   for (let count = 0; count < n; count++) {
-    let uIdx = -1;
-    let minKey = Infinity;
-    
-    // 找 key 最小的未访问节点
+    let uIdx = -1, minKey = Infinity;
     for (let i = 0; i < n; i++) {
       if (!inMST.has(nodes[i]) && key[i] < minKey) {
         minKey = key[i];
@@ -88,23 +88,15 @@ export function generatePrimSteps(input) {
     const u = nodes[uIdx];
     record('find-min', 'find-min', `找到当前 key 最小的顶点：${u} (权重: ${key[uIdx]})。`, u);
     
-    // 把 u 加入生成树
     inMST.add(u);
-    if (parent[uIdx] !== null) {
-      totalWeight += key[uIdx];
-    }
+    if (parent[uIdx] !== null) totalWeight += key[uIdx];
     record('mark-mst', 'mark-mst', `将 ${u} 加入生成树。当前总权重: ${totalWeight}。`, u);
-
     record('loop-neighbors', 'loop-neighbors', `检查 ${u} 的邻接点，更新候选边。`, u);
 
-    // 更新邻接点的 key
     for (let vIdx = 0; vIdx < n; vIdx++) {
       if (graph[uIdx][vIdx] !== Infinity && !inMST.has(nodes[vIdx])) {
-        const v = nodes[vIdx];
-        const weight = graph[uIdx][vIdx];
-
+        const v = nodes[vIdx], weight = graph[uIdx][vIdx];
         record('check-relax', 'check-relax', `检查边 ${u} -> ${v} (权重 ${weight})。`, u, [u, v, weight]);
-
         if (weight < key[vIdx]) {
           key[vIdx] = weight;
           parent[vIdx] = u;
