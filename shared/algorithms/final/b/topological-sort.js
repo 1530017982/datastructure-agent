@@ -4,19 +4,20 @@ const SOURCE_VERSION = 'topo-c-v1';
 const SOURCE_LINES = [
   { lineId: 'init', text: 'void topoSort(int graph[][MAX], int n) {' },
   { lineId: 'init-degree', text: '  int inDegree[MAX] = {0};' },
-  { lineId: 'calc-degree', text: '  // 统计所有节点的入度' },
+  { lineId: 'calc-degree', text: '  // 统计入度' },
   { lineId: 'init-queue', text: '  queue<int> q;' },
-  { lineId: 'push-zero', text: '  // 将入度为0的节点入队' },
+  { lineId: 'push-zero', text: '  // 零入度入队' },
   { lineId: 'loop', text: '  while (!q.empty()) {' },
   { lineId: 'pop', text: '    int u = q.front(); q.pop();' },
   { lineId: 'loop-neighbors', text: '    for (int v = 0; v < n; v++) {' },
   { lineId: 'dec-degree', text: '      if (graph[u][v] == 1) {' },
   { lineId: 'check-zero', text: '        if (--inDegree[v] == 0) q.push(v);' },
-  { lineId: 'end', text: '}' }
+  { lineId: 'end', text: '      }\n    }\n  }\n}' }
 ];
 
 export function generateTopoSteps(input) {
   const { nodes } = input;
+  // 严格校验，无权图
   const validEdges = validateGraphInput(input, '拓扑排序', false);
 
   const n = nodes.length;
@@ -67,15 +68,11 @@ export function generateTopoSteps(input) {
     for (let v = 0; v < n; v++) {
       if (graph[ui][v] === 1) {
         const neighbor = nodes[v];
-        // 修复 1：currentEdge 必须包含起点和终点
         record('dec-degree', 'dec-degree', `找到边 ${u} -> ${neighbor}，准备将入度减 1。`, u, [u, neighbor]);
-        
         const newDegree = inDegree.get(neighbor) - 1;
         inDegree.set(neighbor, newDegree);
-        
         if (newDegree === 0) {
           queue.push(neighbor);
-          // 修复 1：currentEdge 包含完整两点
           record('check-zero', 'check-zero', `${neighbor} 入度变为 0，加入队列。`, u, [u, neighbor]);
         } else {
           record('dec-degree', 'dec-degree', `${neighbor} 的入度变为 ${newDegree}。`, u, [u, neighbor]);

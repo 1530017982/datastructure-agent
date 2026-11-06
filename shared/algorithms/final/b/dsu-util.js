@@ -33,7 +33,6 @@ export class DSU {
     return true;
   }
   getState() {
-    // 修复：使用 Object.create(null) 让 __proto__ 可以作为普通 key 存在
     const parentObj = Object.create(null);
     for (const [k, v] of this.parent.entries()) parentObj[k] = v;
     const rankObj = Object.create(null);

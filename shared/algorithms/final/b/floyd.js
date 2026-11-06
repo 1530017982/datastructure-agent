@@ -3,19 +3,18 @@ import { validateGraphInput } from './validate-util.js';
 const SOURCE_VERSION = 'floyd-c-v1';
 const SOURCE_LINES = [
   { lineId: 'init', text: 'void floyd(int dist[][MAX], int n) {' },
-  { lineId: 'init-dist', text: '  // 初始化 dist 矩阵' },
+  { lineId: 'init-dist', text: '  // 初始化矩阵' },
   { lineId: 'loop-k', text: '  for (int k = 0; k < n; k++) {' },
   { lineId: 'loop-i', text: '    for (int i = 0; i < n; i++) {' },
   { lineId: 'loop-j', text: '      for (int j = 0; j < n; j++) {' },
   { lineId: 'relax', text: '        if (dist[i][k] + dist[k][j] < dist[i][j])' },
   { lineId: 'update', text: '          dist[i][j] = dist[i][k] + dist[k][j];' },
-  { lineId: 'end', text: '}' }
+  { lineId: 'end', text: '      }\n    }\n  }\n}' }
 ];
 
 export function generateFloydSteps(input) {
   const { nodes, directed } = input;
   const validEdges = validateGraphInput(input, 'Floyd', true);
-  
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
   const dist = Array.from({ length: n }, () => Array(n).fill(Infinity));
@@ -25,7 +24,6 @@ export function generateFloydSteps(input) {
   for (const { u, v, w } of validEdges) {
     const ui = nodeIndex.get(u);
     const vi = nodeIndex.get(v);
-    // 校验器已经去重并取最小权重，这里直接赋值
     dist[ui][vi] = Math.min(dist[ui][vi], w);
     if (!directed) dist[vi][ui] = Math.min(dist[vi][ui], w);
   }
@@ -43,21 +41,19 @@ export function generateFloydSteps(input) {
     });
   }
 
-  record('init', 'init', `初始化 Floyd 距离矩阵。`);
-  record('init-dist', 'init-dist', `矩阵初始化完成，自身距离为0，平行边已取最小权重。`);
+  record('init', 'init', `初始化 Floyd。`);
+  record('init-dist', 'init-dist', `矩阵初始化完成，对角线为0。`);
 
   for (let k = 0; k < n; k++) {
-    record('loop-k', 'loop-k', `当前中转点 k = ${nodes[k]}。`, k);
+    record('loop-k', 'loop-k', `中转点 k = ${nodes[k]}。`, k);
     for (let i = 0; i < n; i++) {
       record('loop-i', 'loop-i', `起点 i = ${nodes[i]}。`, k, i);
       for (let j = 0; j < n; j++) {
-        record('loop-j', 'loop-j', `终点 j = ${nodes[j]}，检查是否可以通过 k 缩短距离。`, k, i, j);
-        if (dist[i][k] !== Infinity && dist[k][j] !== Infinity) {
-          if (dist[i][k] + dist[k][j] < dist[i][j]) {
-            const oldDist = dist[i][j];
-            dist[i][j] = dist[i][k] + dist[k][j];
-            record('update', 'update', `发现更短路径！${nodes[i]}->${nodes[j]} 的距离由 ${oldDist === Infinity ? '∞' : oldDist} 更新为 ${dist[i][j]}。`, k, i, j);
-          }
+        record('loop-j', 'loop-j', `终点 j = ${nodes[j]}。`, k, i, j);
+        if (dist[i][k] !== Infinity && dist[k][j] !== Infinity && dist[i][k] + dist[k][j] < dist[i][j]) {
+          const oldDist = dist[i][j];
+          dist[i][j] = dist[i][k] + dist[k][j];
+          record('update', 'update', `更新 ${nodes[i]}->${nodes[j]} 为 ${dist[i][j]}。`, k, i, j);
         }
       }
     }
@@ -72,8 +68,7 @@ export function generateFloydSteps(input) {
   if (hasNegativeCycle) {
     record('end', 'end', `对角线发现负数，存在负权环！`, null, null, null, finalResult);
   } else {
-    record('end', 'end', `Floyd 算法结束，最短路径矩阵计算完毕。`, null, null, null, finalResult);
+    record('end', 'end', `Floyd 结束。`, null, null, null, finalResult);
   }
-
   return { steps, result: finalResult, sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES };
 }

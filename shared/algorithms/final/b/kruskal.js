@@ -11,16 +11,14 @@ const SOURCE_LINES = [
   { lineId: 'find-v', text: '    int rootV = find(edges[i].v);' },
   { lineId: 'check-root', text: '    if (rootU != rootV) {' },
   { lineId: 'union', text: '      unionSet(rootU, rootV);' },
-  { lineId: 'end', text: '}' }
+  { lineId: 'end', text: '    }\n  }\n}' }
 ];
 
 export function generateKruskalSteps(input) {
   const { nodes } = input;
   const validEdges = validateGraphInput(input, 'Kruskal', true);
-
   const n = nodes.length;
   const dsu = new DSU(nodes);
-  // 记录原始索引以确保同权边稳定排序
   const edgeList = validEdges.map((e, index) => ({ u: e.u, v: e.v, w: e.w, originalIndex: index }));
   
   const steps = [];
@@ -44,14 +42,10 @@ export function generateKruskalSteps(input) {
     });
   }
 
-  record('init', 'init', `初始化 Kruskal 算法。`);
-  // 修复：增加 originalIndex 比较作为第二排序条件，确保同权边顺序稳定
-  edgeList.sort((a, b) => {
-    if (a.w !== b.w) return a.w - b.w;
-    return a.originalIndex - b.originalIndex;
-  });
+  record('init', 'init', `初始化 Kruskal。`);
+  edgeList.sort((a, b) => a.w !== b.w ? a.w - b.w : a.originalIndex - b.originalIndex);
   record('sort', 'sort', `将所有边按权重从小到大稳定排序。`);
-  record('init-dsu', 'init-dsu', `初始化并查集，每个节点各自为一个集合。`);
+  record('init-dsu', 'init-dsu', `初始化并查集。`);
   record('loop', 'loop', `开始遍历排序后的边。`);
 
   for (const edge of edgeList) {
@@ -74,9 +68,9 @@ export function generateKruskalSteps(input) {
   }
 
   if (selectedEdges.length === n - 1) {
-    record('end', 'end', `Kruskal 算法结束。生成一棵最小生成树，总权重：${totalWeight}`);
+    record('end', 'end', `Kruskal 结束。生成一棵最小生成树，总权重：${totalWeight}`);
   } else {
-    record('end', 'end', `Kruskal 算法结束。图不连通，生成最小生成森林，总权重：${totalWeight}`);
+    record('end', 'end', `Kruskal 结束。图不连通，生成最小生成森林，总权重：${totalWeight}`);
   }
   return { steps, result: steps[steps.length - 1].result, sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES };
 }
