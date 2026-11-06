@@ -14,7 +14,7 @@ const SOURCE_LINES = [
 
 export function generateFloydSteps(input) {
   const { nodes, directed } = input;
-  const validEdges = validateGraphInput(input, 'Floyd');
+  const validEdges = validateGraphInput(input, 'Floyd',true);
   
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));

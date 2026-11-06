@@ -18,7 +18,7 @@ const SOURCE_LINES = [
 
 export function generateBfsSteps(input) {
   const { nodes, start, directed } = input;
-  const validEdges = validateGraphInput(input, 'BFS');
+  const validEdges = validateGraphInput(input, 'BFS',false);
 
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));

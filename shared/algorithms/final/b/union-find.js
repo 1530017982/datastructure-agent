@@ -12,6 +12,9 @@ const SOURCE_LINES = [
   { lineId: 'check-root', text: '  if (rootX != rootY) {' },
   { lineId: 'check-rank', text: '    if (rank[rootX] < rank[rootY]) {' },
   { lineId: 'merge-x-to-y', text: '      parent[rootX] = rootY;' },
+  { lineId: 'check-rank-equal', text: '    } else if (rank[rootX] == rank[rootY]) {' },
+  // 修复 4：补全等秩时的代码高亮展示
+  { lineId: 'merge-equal', text: '      parent[rootY] = rootX; rank[rootX]++;' },
   { lineId: 'merge-y-to-x', text: '    } else { parent[rootY] = rootX; }' },
   { lineId: 'end', text: '}' }
 ];
@@ -78,7 +81,7 @@ export function generateUnionFindSteps(input) {
       } else if (rankX > rankY) {
         record('merge', 'merge-y-to-x', `rootY 的秩较小，将 ${rootY} 挂到 ${rootX} 下。`, op);
       } else {
-        record('merge', 'merge-y-to-x', `秩相同，将 ${rootY} 挂到 ${rootX} 下，并增加 ${rootX} 的秩。`, op);
+        record('merge', 'merge-equal', `秩相同，将 ${rootY} 挂到 ${rootX} 下，并增加 ${rootX} 的秩。`, op);
       }
     } else {
       record('check-root', 'check-root', `根相同，无需合并。当前集合数：${setCount}。`, op);

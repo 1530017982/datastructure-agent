@@ -1,5 +1,14 @@
-export function validateGraphInput(input, algoName) {
-  const { nodes, edges, start, directed, isWeighted = false } = input;
+export function validateGraphInput(input, algoName, isWeighted) {
+  const { nodes, edges, start } = input;
+  
+  // 修复 2：严格校验 directed，必须是布尔值，默认 false
+  let directed = false;
+  if ('directed' in input) {
+    if (typeof input.directed !== 'boolean') {
+      throw new Error(`【${algoName}】方向字段 directed 必须是布尔值。`);
+    }
+    directed = input.directed;
+  }
 
   // 1. 校验顶点 nodes
   if (!Array.isArray(nodes) || nodes.length === 0) {
@@ -29,7 +38,7 @@ export function validateGraphInput(input, algoName) {
     if (!nodeSet.has(u)) throw new Error(`【${algoName}】第 ${i + 1} 条边引用了未声明的顶点 ${u}。`);
     if (!nodeSet.has(v)) throw new Error(`【${algoName}】第 ${i + 1} 条边引用了未声明的顶点 ${v}。`);
 
-    // 3. 校验权重
+    // 修复 1：由算法指定是否带权，而不是由前端传 isWeighted
     if (isWeighted) {
       if (w === undefined || w === null) {
         throw new Error(`【${algoName}】第 ${i + 1} 条边缺失权重。`);
@@ -47,7 +56,7 @@ export function validateGraphInput(input, algoName) {
     }
   }
 
-  // 4. 校验方向 directed
+  // 3. 校验方向约束
   if (algoName === 'Prim' || algoName === 'Kruskal') {
     if (directed === true) throw new Error(`【${algoName}】只接受无向图 (directed=false)。`);
   }
@@ -55,26 +64,22 @@ export function validateGraphInput(input, algoName) {
     if (directed === false) throw new Error(`【${algoName}】只接受有向图 (directed=true)。`);
   }
 
-  // 5. 校验起点 start
+  // 4. 校验起点 start
   if (['BFS', 'DFS', 'Prim', 'Dijkstra'].includes(algoName)) {
     if (!start || !nodeSet.has(start)) {
       throw new Error(`【${algoName}】起点 start 必须存在且包含在顶点列表中。`);
     }
   }
 
-  // 返回去重后的边结构
+  // 5. 去重
   const finalEdges = new Map();
   for (const [u, v, w] of edges) {
-    let key;
-    if (directed) {
-      key = `${u}->${v}`;
-    } else {
-      key = u < v ? `${u}-${v}` : `${v}-${u}`; // 无向图边去重
-    }
+    // 修复 3：使用 JSON.stringify 或者复合数组作为 key，防止 'a-b' 和 'a-b-c' 碰撞
+    const key = directed ? JSON.stringify([u, v]) : JSON.stringify(u < v ? [u, v] : [v, u]);
+    
     if (!finalEdges.has(key)) {
       finalEdges.set(key, { u, v, w });
     } else if (isWeighted) {
-      // 保留最小权重
       const existing = finalEdges.get(key);
       if (w < existing.w) existing.w = w;
     }
