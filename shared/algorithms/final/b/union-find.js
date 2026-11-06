@@ -15,7 +15,7 @@ const SOURCE_LINES = [
   { lineId: 'check-rank-equal', text: '    } else if (rank[rootX] == rank[rootY]) {' },
   { lineId: 'merge-equal', text: '      parent[rootY] = rootX; rank[rootX]++;' },
   { lineId: 'merge-y-to-x', text: '    } else { parent[rootY] = rootX; }' },
-  { lineId: 'end', text: '}' }
+  { lineId: 'end', text: '    }\n  }\n}\n}' }
 ];
 
 export function generateUnionFindSteps(input) {

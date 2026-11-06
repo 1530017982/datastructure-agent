@@ -1,7 +1,9 @@
 export function validateGraphInput(input, algoName, isWeighted) {
-  if (!input || typeof input !== 'object') {
-    throw new Error(`【${algoName}】输入必须是一个对象。`);
+  // 修复：先校验输入本身，再解构
+  if (input === null || typeof input !== 'object') {
+    throw new Error(`【${algoName}】输入必须是一个非空对象。`);
   }
+
   const { nodes, edges, start } = input;
   
   let directed = false;
@@ -64,7 +66,7 @@ export function validateGraphInput(input, algoName, isWeighted) {
     if (typeof start !== 'string' || !nodeMap.has(start)) throw new Error(`【${algoName}】起点 start 必须存在且包含在顶点列表中。`);
   }
 
-  // 4. 过滤重复边并取最小权重
+  // 4. 过滤重复边
   const finalEdges = new Map();
   for (const [u, v, w] of edges) {
     const key = directed ? JSON.stringify([u, v]) : JSON.stringify(u < v ? [u, v] : [v, u]);

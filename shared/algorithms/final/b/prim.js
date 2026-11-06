@@ -12,13 +12,12 @@ const SOURCE_LINES = [
   { lineId: 'loop-neighbors', text: '    for (int v = 0; v < n; v++) {' },
   { lineId: 'check-relax', text: '      if (!inMST[v] && graph[u][v] != INF && graph[u][v] < key[v]) {' },
   { lineId: 'update-key', text: '        key[v] = graph[u][v]; parent[v] = u;' },
-  { lineId: 'end', text: '}' }
+  { lineId: 'end', text: '      }\n    }\n  }\n}' }
 ];
 
 export function generatePrimSteps(input) {
   const { nodes, start } = input;
   const validEdges = validateGraphInput(input, 'Prim', true);
-  
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
   const graph = Array.from({ length: n }, () => Array(n).fill(Infinity));
@@ -39,7 +38,6 @@ export function generatePrimSteps(input) {
 
   function record(event, lineId, description, currentNode = null, currentEdge = null) {
     const done = event === 'end';
-    // 修复：使用 Object.create(null) 防止 __proto__ 丢失
     const keyDisplay = Object.create(null);
     nodes.forEach((node, i) => { keyDisplay[node] = key[i] === Infinity ? '∞' : key[i]; });
     const parentDisplay = Object.create(null);
