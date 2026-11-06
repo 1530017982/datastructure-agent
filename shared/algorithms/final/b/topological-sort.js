@@ -17,8 +17,7 @@ const SOURCE_LINES = [
 
 export function generateTopoSteps(input) {
   const { nodes } = input;
-  // 使用统一的校验工具，强制要求是有向图
-  const validEdges = validateGraphInput(input, '拓扑排序',false);
+  const validEdges = validateGraphInput(input, '拓扑排序', false);
 
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
@@ -42,8 +41,7 @@ export function generateTopoSteps(input) {
       schemaVersion: '1.0', algorithm: 'topological-sort', stepIndex: steps.length,
       sourceVersion: SOURCE_VERSION, event, lineId,
       variables: { inDegree: Object.fromEntries(inDegree), queue: [...queue], resultOrder: [...resultOrder], currentNode, currentEdge },
-      description, done, 
-      result: done ? (customResult || resultOrder) : null 
+      description, done, result: done ? (customResult || resultOrder) : null 
     });
   }
 
@@ -69,14 +67,18 @@ export function generateTopoSteps(input) {
     for (let v = 0; v < n; v++) {
       if (graph[ui][v] === 1) {
         const neighbor = nodes[v];
+        // 修复 1：currentEdge 必须包含起点和终点
         record('dec-degree', 'dec-degree', `找到边 ${u} -> ${neighbor}，准备将入度减 1。`, u, [u, neighbor]);
+        
         const newDegree = inDegree.get(neighbor) - 1;
         inDegree.set(neighbor, newDegree);
+        
         if (newDegree === 0) {
           queue.push(neighbor);
+          // 修复 1：currentEdge 包含完整两点
           record('check-zero', 'check-zero', `${neighbor} 入度变为 0，加入队列。`, u, [u, neighbor]);
         } else {
-          record('dec-degree', 'dec-degree', `${neighbor} 的入度变为 ${newDegree}。`, u, [neighbor]);
+          record('dec-degree', 'dec-degree', `${neighbor} 的入度变为 ${newDegree}。`, u, [u, neighbor]);
         }
       }
     }

@@ -1,7 +1,6 @@
 export function validateGraphInput(input, algoName, isWeighted) {
   const { nodes, edges, start } = input;
   
-  // 修复 2：严格校验 directed，必须是布尔值，默认 false
   let directed = false;
   if ('directed' in input) {
     if (typeof input.directed !== 'boolean') {
@@ -10,22 +9,21 @@ export function validateGraphInput(input, algoName, isWeighted) {
     directed = input.directed;
   }
 
-  // 1. 校验顶点 nodes
   if (!Array.isArray(nodes) || nodes.length === 0) {
     throw new Error(`【${algoName}】顶点 nodes 必须是非空数组。`);
   }
-  const nodeSet = new Set();
+  // 修复 3：使用 Object.create(null) 避免 __proto__ 污染
+  const nodeSet = Object.create(null);
   for (let i = 0; i < nodes.length; i++) {
     if (typeof nodes[i] !== 'string' || nodes[i].trim() === '') {
       throw new Error(`【${algoName}】第 ${i + 1} 个顶点不是非空字符串。`);
     }
-    if (nodeSet.has(nodes[i])) {
+    if (nodeSet[nodes[i]]) {
       throw new Error(`【${algoName}】顶点 ${nodes[i]} 存在重复。`);
     }
-    nodeSet.add(nodes[i]);
+    nodeSet[nodes[i]] = true;
   }
 
-  // 2. 校验边 edges
   if (!Array.isArray(edges)) {
     throw new Error(`【${algoName}】边 edges 必须是数组。`);
   }
@@ -35,10 +33,10 @@ export function validateGraphInput(input, algoName, isWeighted) {
       throw new Error(`【${algoName}】第 ${i + 1} 条边格式错误。`);
     }
     const [u, v, w] = edge;
-    if (!nodeSet.has(u)) throw new Error(`【${algoName}】第 ${i + 1} 条边引用了未声明的顶点 ${u}。`);
-    if (!nodeSet.has(v)) throw new Error(`【${algoName}】第 ${i + 1} 条边引用了未声明的顶点 ${v}。`);
+    // 修复 3：属性存在性检查
+    if (!nodeSet[u]) throw new Error(`【${algoName}】第 ${i + 1} 条边引用了未声明的顶点 ${u}。`);
+    if (!nodeSet[v]) throw new Error(`【${algoName}】第 ${i + 1} 条边引用了未声明的顶点 ${v}。`);
 
-    // 修复 1：由算法指定是否带权，而不是由前端传 isWeighted
     if (isWeighted) {
       if (w === undefined || w === null) {
         throw new Error(`【${algoName}】第 ${i + 1} 条边缺失权重。`);
@@ -56,7 +54,6 @@ export function validateGraphInput(input, algoName, isWeighted) {
     }
   }
 
-  // 3. 校验方向约束
   if (algoName === 'Prim' || algoName === 'Kruskal') {
     if (directed === true) throw new Error(`【${algoName}】只接受无向图 (directed=false)。`);
   }
@@ -64,19 +61,15 @@ export function validateGraphInput(input, algoName, isWeighted) {
     if (directed === false) throw new Error(`【${algoName}】只接受有向图 (directed=true)。`);
   }
 
-  // 4. 校验起点 start
   if (['BFS', 'DFS', 'Prim', 'Dijkstra'].includes(algoName)) {
-    if (!start || !nodeSet.has(start)) {
+    if (!start || !nodeSet[start]) {
       throw new Error(`【${algoName}】起点 start 必须存在且包含在顶点列表中。`);
     }
   }
 
-  // 5. 去重
   const finalEdges = new Map();
   for (const [u, v, w] of edges) {
-    // 修复 3：使用 JSON.stringify 或者复合数组作为 key，防止 'a-b' 和 'a-b-c' 碰撞
     const key = directed ? JSON.stringify([u, v]) : JSON.stringify(u < v ? [u, v] : [v, u]);
-    
     if (!finalEdges.has(key)) {
       finalEdges.set(key, { u, v, w });
     } else if (isWeighted) {

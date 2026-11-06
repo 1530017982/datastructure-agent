@@ -16,8 +16,8 @@ const SOURCE_LINES = [
 ];
 
 export function generatePrimSteps(input) {
-  const { nodes, start, directed } = input;
-  const validEdges = validateGraphInput(input, 'Prim',true);
+  const { nodes, start } = input;
+  const validEdges = validateGraphInput(input, 'Prim', true);
   
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
@@ -35,6 +35,7 @@ export function generatePrimSteps(input) {
   const inMST = new Set();
   const parent = Array(n).fill(null);
   let totalWeight = 0;
+  let isDisconnected = false;
 
   function record(event, lineId, description, currentNode = null, currentEdge = null) {
     const done = event === 'end';
@@ -47,7 +48,9 @@ export function generatePrimSteps(input) {
       schemaVersion: '1.0', algorithm: 'prim', stepIndex: steps.length,
       sourceVersion: SOURCE_VERSION, event, lineId,
       variables: { key: keyDisplay, parent: parentDisplay, inMST: Array.from(inMST), totalWeight, currentNode, currentEdge },
-      description, done, result: done ? { totalWeight, mstNodes: Array.from(inMST) } : null
+      description, done, 
+      // 修复 2：明确在最终结果标明是否连通
+      result: done ? { totalWeight, mstNodes: Array.from(inMST), isDisconnected } : null
     });
   }
 
@@ -65,6 +68,7 @@ export function generatePrimSteps(input) {
     }
 
     if (uIdx === -1) {
+      isDisconnected = true;
       record('mark-mst', 'mark-mst', `图不连通，存在无法到达的顶点，提前结束。`);
       break;
     }
@@ -88,6 +92,7 @@ export function generatePrimSteps(input) {
       }
     }
   }
-  record('end', 'end', `Prim 算法结束。总权重：${totalWeight}`);
+
+  record('end', 'end', `Prim 算法结束。总权重：${totalWeight}。${isDisconnected ? '图不连通！' : ''}`);
   return { steps, result: steps[steps.length - 1].result, sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES };
 }
