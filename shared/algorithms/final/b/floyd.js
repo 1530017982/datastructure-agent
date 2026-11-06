@@ -7,15 +7,16 @@ const SOURCE_LINES = [
   { lineId: 'loop-k', text: '  for (int k = 0; k < n; k++) {' },
   { lineId: 'loop-i', text: '    for (int i = 0; i < n; i++) {' },
   { lineId: 'loop-j', text: '      for (int j = 0; j < n; j++) {' },
-  { lineId: 'relax', text: '        if (dist[i][k] + dist[k][j] < dist[i][j])' },
+  // 修复 2：补全可达性判断，与实际执行一致
+  { lineId: 'relax', text: '        if (dist[i][k] != INF && dist[k][j] != INF && dist[i][k] + dist[k][j] < dist[i][j])' },
   { lineId: 'update', text: '          dist[i][j] = dist[i][k] + dist[k][j];' },
   { lineId: 'end', text: '      }\n    }\n  }\n}' }
 ];
 
 export function generateFloydSteps(input) {
-
   const validEdges = validateGraphInput(input, 'Floyd', true);
-    const { nodes, directed } = input;
+  const { nodes, directed } = input;
+  
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
   const dist = Array.from({ length: n }, () => Array(n).fill(Infinity));
@@ -51,6 +52,8 @@ export function generateFloydSteps(input) {
       record('loop-i', 'loop-i', `起点 i = ${nodes[i]}。`, k, i);
       for (let j = 0; j < n; j++) {
         record('loop-j', 'loop-j', `终点 j = ${nodes[j]}。`, k, i, j);
+        
+        // 执行逻辑同样保持严格的可达性判断
         if (dist[i][k] !== Infinity && dist[k][j] !== Infinity && dist[i][k] + dist[k][j] < dist[i][j]) {
           const oldDist = dist[i][j];
           dist[i][j] = dist[i][k] + dist[k][j];
