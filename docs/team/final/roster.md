@@ -9,7 +9,7 @@
 | 03 | 刘运昆 | 102301225 | kun123567 | [PPT、博客与演示](tasks/03-delivery.md) |
 | 04 |  |  |  | A · [比较排序](tasks/a-sorting-workbench.md) |
 | 05 |林为峰  | 102301230 |Aidname  | B · [图算法与并查集](tasks/b-graphs-engine.md) |
-| 06 |  |  |  | C · [多路归并、外部排序与多路查找树](tasks/c-external-multiway.md) |
+| 06 | 秦文贵 | 102401615 | vg666-NiKo | C · [多路归并、外部排序与多路查找树](tasks/c-external-multiway.md) |
 | 07 |  |  |  | D · [查找与哈希](tasks/d-search-hash.md) |
 | 08 |  |  |  | E · [线性表与数组算法](tasks/e-linear-array.md) |
 | 09 |  |  |  | F · [字符串、栈与有向无环图应用](tasks/f-string-stack-dag.md) |
