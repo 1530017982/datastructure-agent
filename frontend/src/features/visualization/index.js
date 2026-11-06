@@ -1,3 +1,5 @@
+import { arraySearch } from '../workbench/array-search.js';
+import { createExplanationPanel } from './explanation-panel.js';
 /**
  * 成员03 · 数组动画渲染（主责路径 frontend/src/features/visualization/）
  *
@@ -60,6 +62,11 @@ function prefersReducedMotion() {
  */
 export function describeStep(step) {
   if (!step) return '无步骤数据';
+  if (arraySearch(step.algorithm)) {
+    const { index, comparisons } = step.variables;
+    const position = index === null ? '' : ' ｜ A[' + index + '] = ' + step.array[index];
+    return '第 ' + (step.stepIndex + 1) + ' 步 ｜ 目标 ' + step.target + position + ' ｜ 已比较 ' + comparisons + ' 次';
+  }
   if (step.algorithm === 'bubble-sort' || step.algorithm === 'custom-array') return `第 ${step.stepIndex + 1} 步：${step.description}`;
   const { array = [], target, variables = {}, event, done, result } = step;
   const { left, right, mid } = variables;
@@ -88,6 +95,7 @@ export function describeStep(step) {
  */
 export function describeTransition(previous, current) {
   if (!current) return '';
+  if (arraySearch(current.algorithm)) return current.description;
   if (current.algorithm === 'bubble-sort' || current.algorithm === 'custom-array') return current.description;
   const { array = [], target, variables = {}, event, result } = current;
   const { left, right, mid } = variables;
@@ -291,27 +299,7 @@ export function createVisualization(container, {
 
   const root = el('div', 'bsviz');
   const track = el('div', 'bsviz-track');
-  const caption = el('p', 'bsviz-caption');
-  const status = el('p', 'bsviz-status');
-  status.setAttribute('role', 'status');
-
-  // 原来视口里"上一条转场说明 + 下一条状态行"两条解释，合并成一个可收起的解释面板。
-  // 面板自带收展控件，宿主只负责决定它挂在哪（dev 页挂在视口右上角的浮层里）。
-  const explain = el('div', 'bsviz-explain');
-  const explainHead = el('div', 'bsviz-explain-head');
-  explainHead.append(el('span', 'bsviz-explain-title', '本步解释'));
-  const explainToggle = el('button', 'bsviz-explain-toggle', '收起');
-  explainToggle.setAttribute('type', 'button');
-  explainToggle.setAttribute('aria-expanded', 'true');
-  explainHead.append(explainToggle);
-  explain.append(explainHead, caption, status);
-  explain.dataset.collapsed = 'false';
-  explainToggle.addEventListener('click', () => {
-    const collapsed = explain.dataset.collapsed === 'true';
-    explain.dataset.collapsed = collapsed ? 'false' : 'true';
-    explainToggle.textContent = collapsed ? '收起' : '展开';
-    explainToggle.setAttribute('aria-expanded', String(collapsed));
-  });
+  const { explain, caption, status } = createExplanationPanel();
 
   const steps = Array.isArray(run?.steps) ? run.steps : [];
   const dots = withDots

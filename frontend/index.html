@@ -129,12 +129,38 @@
  </section>
     <section id="workbench" data-page-view="workbench" aria-labelledby="workbench-heading">
       <header class="page-header"><div><p class="eyebrow">ALGORITHM WORKBENCH</p><h1 id="workbench-heading" tabindex="-1">二分查找</h1><p class="subtitle">把每一次比较，都看清楚。</p></div>
-        <label class="workbench-algorithm">选择算法<select id="algorithm-select"><option value="binary-search">二分查找</option><option value="bubble-sort">冒泡排序</option><option value="custom-array">自定义代码</option></select></label>
+        <div class="workbench-algorithm" id="algorithm-menu">
+          <button id="algorithm-trigger" type="button" class="secondary" aria-expanded="false" aria-controls="algorithm-chapters">
+            <span>选择算法</span><strong id="algorithm-selection">二分查找</strong><span aria-hidden="true">▾</span>
+          </button>
+          <ul id="algorithm-chapters" class="algorithm-menu-list" aria-label="算法章节" hidden></ul>
+        </div>
       </header>
       <form id="run-form" class="input-panel" aria-label="创建算法运行">
         <label class="array-field" for="arrInput"><span id="array-label">有序数组</span><input id="arrInput" name="array" type="text" autocomplete="off" placeholder="例如：1, 3, 5, 7, 9" aria-describedby="input-help msgBox"></label>
         <label id="target-field" for="targetInput">目标值<input id="targetInput" name="target" type="text" inputmode="numeric" autocomplete="off" placeholder="例如：7" aria-describedby="msgBox"></label>
-        <div class="input-actions"><button id="fillDemo" type="button" class="secondary">↻ 填入示例</button><button id="startBtn" type="submit">开始分析</button></div>
+        <div id="bfs-run-summary" hidden>
+          <p id="bfs-run-detail"></p>
+          <button id="bfs-edit" type="button" class="secondary" aria-controls="bfs-fields">编辑输入</button>
+        </div>
+        <div id="bfs-fields" hidden>
+          <section id="bfs-vertices" aria-label="填写顶点">
+            <label for="bfs-nodes">第 1 步 · 填写顶点<input id="bfs-nodes" type="text" autocomplete="off" placeholder="例如：A, B, C" aria-describedby="bfs-count msgBox"></label>
+            <p id="bfs-count" class="muted" aria-live="polite">共 0 个顶点</p>
+          </section>
+          <section id="bfs-connections" aria-label="填写边和起点" hidden>
+            <p id="bfs-summary" class="muted"></p>
+            <div class="bfs-row">
+              <p id="graph-fixed-direction" class="muted" hidden></p>
+              <label id="graph-direction-field">图类型<select id="bfs-directed"><option value="false">无向图</option><option value="true">有向图</option></select></label>
+              <label id="graph-start-field">起点<select id="bfs-start"></select></label>
+            </div>
+            <p id="graph-edge-help" class="muted"></p>
+            <div id="bfs-edges"></div>
+            <button id="bfs-add-edge" type="button" class="secondary">＋ 添加一条边</button>
+          </section>
+        </div>
+        <div class="input-actions"><button id="fillDemo" type="button" class="secondary">↻ 填入示例</button><button id="bfs-back" type="button" class="secondary" hidden>上一步</button><button id="bfs-next" type="button" hidden>下一步</button><button id="startBtn" type="submit">开始分析</button></div>
         <p id="input-help" class="muted">最多 100 个非递减安全整数，逗号分隔；留空为空数组。允许负数和重复值。</p>
         <div id="custom-code-fields" hidden>
           <label for="code-language">编译语言<select id="code-language"><option value="c">C</option><option value="cpp">C++</option></select></label>
@@ -151,7 +177,7 @@
         </section>
         <section class="visualization-region" aria-label="执行过程"><h2 id="viz-title" class="sr-only">执行过程</h2><span id="stepText" class="sr-only">尚未开始</span><div id="visualization-panel" tabindex="0" aria-label="数组动画，可用左右方向键单步操作"></div><p id="step-description" class="sr-only" aria-live="polite"></p></section>
       </div>
-      <footer class="workspace-footer"><span>数组下标从 0 开始</span><span>先观察，再追问每一步。</span></footer>
+      <footer class="workspace-footer"><span id="workbench-footer-detail">数组下标从 0 开始</span><span>先观察，再追问每一步。</span></footer>
     </section>
     <section id="knowledge" data-page-view="knowledge" aria-labelledby="knowledge-heading" hidden>
       <header class="page-header">

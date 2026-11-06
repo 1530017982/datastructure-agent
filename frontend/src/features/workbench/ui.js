@@ -1,3 +1,6 @@
+import { arraySearch } from './array-search.js';
+import { graphAlgorithm } from './graph-algorithms.js';
+
 // Layout state never owns or changes the algorithm's playback cursor.
 export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
   const $ = id => document.getElementById(id);
@@ -104,7 +107,7 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
       query.set('unit', unit);
       if (section && /^[a-z0-9-]{1,50}$/.test(section)) query.set('section', section);
     }
-    if (name === 'workbench' && ['binary-search', 'bubble-sort', 'custom-array'].includes(requestedAlgorithm)) {
+    if (name === 'workbench' && (['binary-search', 'bubble-sort', 'custom-array'].includes(requestedAlgorithm) || graphAlgorithm(requestedAlgorithm) || arraySearch(requestedAlgorithm))) {
       query.set('algorithm', requestedAlgorithm);
     }
     const hash = '#' + name + (query.size ? '?' + query : '');
@@ -190,6 +193,16 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
     found: '如果数组有重复值，这次一定返回第一个位置吗？',
     'not-found': '哪个边界条件说明目标已经不在数组中了？'
   };
+  const bfsPrompts = {
+    init: 'BFS 为什么用队列？',
+    'mark-start': '为什么要先标记起点？',
+    'enqueue-start': '为什么起点要先入队？',
+    dequeue: '为什么取出的是队首顶点？',
+    'check-neighbor': '这条边会让哪个顶点进入队列？',
+    'enqueue-neighbor': '为什么这个顶点要排到队尾？',
+    'skip-neighbor': '为什么跳过这个邻点？',
+    end: '为什么有的顶点没有被访问？'
+  };
   const sortingPrompts = {
     init: '为什么从左向右比较相邻元素？',
     compare: '这两个元素需要交换吗？',
@@ -202,11 +215,22 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
     navigate,
     setAlgorithm(value) {
       algorithm = value;
-      if (value === 'custom-array' && open) show(false, false);
-      ball.hidden = currentPage !== 'workbench' || value === 'custom-array';
+      panel.querySelector('.tutor-practice').hidden = Boolean(graphAlgorithm(value) || arraySearch(value));
+      const tutorUnavailable = value === 'custom-array';
+      if (tutorUnavailable && open) show(false, false);
+      ball.hidden = currentPage !== 'workbench' || tutorUnavailable;
     },
     setContext(context) {
-      const activePrompts = algorithm === 'bubble-sort' ? sortingPrompts : prompts;
+      if (arraySearch(algorithm)) {
+        $('tutor-prompt').textContent = algorithm === 'block-search' ? '为什么可以跳过这一块？' : '顺序查找遇到重复值时会返回哪个下标？';
+        return;
+      }
+      const activePrompts = algorithm === 'bfs' ? bfsPrompts
+        : algorithm === 'bubble-sort' ? sortingPrompts : prompts;
+      if (algorithm !== 'bfs' && graphAlgorithm(algorithm)) {
+        $('tutor-prompt').textContent = context?.step?.done ? '这次运行得到了什么结果？' : '这一步改变了哪些状态，为什么？';
+        return;
+      }
       $('tutor-prompt').textContent = activePrompts[context?.step?.event] || activePrompts.init;
       queuePosition();
     },

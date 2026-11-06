@@ -1,6 +1,18 @@
 // backend/src/routes/runs.js
 import { generateSteps } from '../../../shared/algorithms/binarySearch.js';
 import { generateBubbleSteps } from '../../../shared/algorithms/bubbleSort.js';
+import { graphAlgorithm, graphMaxEdges, graphMaxWeight } from '../../../frontend/src/features/workbench/graph-algorithms.js';
+import { generateDfsSteps } from '../../../shared/algorithms/final/b/dfs.js';
+import { generatePrimSteps } from '../../../shared/algorithms/final/b/prim.js';
+import { generateKruskalSteps } from '../../../shared/algorithms/final/b/kruskal.js';
+import { generateDijkstraSteps } from '../../../shared/algorithms/final/b/dijkstra.js';
+import { generateFloydSteps } from '../../../shared/algorithms/final/b/floyd.js';
+import { generateTopoSteps } from '../../../shared/algorithms/final/b/topological-sort.js';
+import { arraySearchMaxElements } from '../../../frontend/src/features/workbench/array-search.js';
+import { generateLinearSearchSteps } from '../../../shared/algorithms/final/d/linear-search.js';
+import { generateBlockSearchSteps } from '../../../shared/algorithms/final/d/block-search.js';
+import { generateBfsSteps } from '../../../shared/algorithms/final/b/bfs.js';
+import { validateGraphInput } from '../../../shared/algorithms/final/b/validate-util.js';
 import { createRun, getRun } from '../runs/store.js';
 
 
@@ -61,7 +73,68 @@ export function handleCreateBubbleRun(res, body) {
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(run));
 }
-// 保留原有的 handleGetRun 和 handleGetStep ...
+export function handleCreateArraySearchRun(res, body, algorithm) {
+  let result;
+  try {
+    const input = JSON.parse(body);
+    if (algorithm === 'linear-search') {
+      if (!Array.isArray(input?.array)) throw new TypeError('array 必须是数组。');
+      if (input.array.length > arraySearchMaxElements) throw new TypeError('数组最多包含 100 个元素。');
+      result = generateLinearSearchSteps(input);
+    } else {
+      if (Array.isArray(input?.blocks) && input.blocks.reduce((size, block) => size + (Array.isArray(block) ? block.length : 0), 0) > arraySearchMaxElements) {
+        throw new TypeError('所有块合计最多包含 100 个元素。');
+      }
+      result = generateBlockSearchSteps(input);
+    }
+  } catch (error) {
+    if (!(error instanceof TypeError || error instanceof SyntaxError)) throw error;
+    return sendError(res, 400, 'INVALID_INPUT', error.message);
+  }
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(createRun({ algorithm, ...result })));
+}
+
+const graphGenerators = {
+  bfs: generateBfsSteps,
+  dfs: generateDfsSteps,
+  prim: generatePrimSteps,
+  kruskal: generateKruskalSteps,
+  dijkstra: generateDijkstraSteps,
+  floyd: generateFloydSteps,
+  'topological-sort': generateTopoSteps
+};
+
+export function handleCreateGraphRun(res, body, algorithm) {
+  const config = graphAlgorithm(algorithm);
+  const maxNodes = config.maxNodes ?? 30;
+  let input;
+  try {
+    input = JSON.parse(body);
+  } catch {
+    return sendError(res, 400, 'INVALID_INPUT', '请求体格式错误');
+  }
+  if (input?.nodes?.length > maxNodes || input?.edges?.length > graphMaxEdges) {
+    return sendError(res, 400, 'INVALID_INPUT', config.name + ' 最多支持 ' + maxNodes + ' 个顶点和 ' + graphMaxEdges + ' 条边。');
+  }
+  let graph;
+  try {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('图输入必须为 JSON 对象。');
+    const directed = Object.hasOwn(input, 'directed') ? input.directed : config.directed ?? false;
+    const validated = validateGraphInput({ ...input, directed }, config.name, Boolean(config.weighted));
+    if (config.weighted && input.edges.some(([, , weight]) => Math.abs(weight) > graphMaxWeight)) {
+      throw new Error('边权的绝对值不得超过 ' + graphMaxWeight + '。');
+    }
+    const edges = validated.map(({ u, v, w }) => config.weighted ? [u, v, w] : [u, v]);
+    graph = { nodes: input.nodes, edges, directed, ...(config.start ? { start: input.start } : {}) };
+  } catch (error) {
+    return sendError(res, 400, 'INVALID_INPUT', error.message);
+  }
+  const run = createRun({ algorithm, graph, ...graphGenerators[algorithm](graph) });
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(run));
+}
+
 
 export function handleGetRun(req, res, runId) {
   const run = getRun(runId);

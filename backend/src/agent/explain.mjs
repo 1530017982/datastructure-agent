@@ -1,3 +1,5 @@
+import { arraySearch } from '../../../frontend/src/features/workbench/array-search.js';
+import { graphAlgorithm } from '../../../frontend/src/features/workbench/graph-algorithms.js';
 import { getRun } from '../runs/store.js';
 import { checkRateLimit, reserveModelCall, finishModelCall, recordMockCall } from './rate-limit.js';
 import { guardOutput } from './output-guard.js';
@@ -89,7 +91,14 @@ async function explain(parsedBody, ctx = {}) {
   const metadata = { sourceRefs: [], knowledgeUsed: false,
     retrieval: { method: 'none', status: 'disabled', matchedCardIds: [], contextCardId: null, matches: [] } };
   const sorting = run.algorithm === 'bubble-sort';
-  const stepRefs = sorting
+  const bfs = run.algorithm === 'bfs';
+  const graph = graphAlgorithm(run.algorithm);
+  const search = arraySearch(run.algorithm);
+  const stepRefs = search
+    ? [{ runId, stepIndex: idx, algorithm: run.algorithm, event: ev, target, array: arr, variables: step.variables }]
+    : graph
+    ? [{ runId, stepIndex: idx, algorithm: run.algorithm, event: ev, variables: step.variables }]
+    : sorting
     ? [{ runId, stepIndex: idx, algorithm: run.algorithm, event: ev, array: arr, variables: step.variables }]
     : [{ runId, stepIndex: idx, event: ev, left, right, mid, array: arr, target }];
 
@@ -152,7 +161,30 @@ async function explain(parsedBody, ctx = {}) {
   const prefix = '[Mock开发模式] ';
   let answer = '';
 
-  if (sorting) {
+  if (bfs) {
+    const { queue, currentNode, currentEdge, discoveryOrder } = step.variables;
+    answer = prefix + 'BFS 第 ' + (stepNo + 1) + ' 步。' + step.description +
+      ' 队列（队首到队尾）：' + (queue.join(' → ') || '空') + '。';
+    if (level >= 2) {
+      answer += ' 当前顶点：' + (currentNode ?? '无') + '；当前检查的边：' +
+        (currentEdge?.join(' → ') ?? '无') + '。BFS 从队首取顶点，新发现的邻点标记后加入队尾。';
+    }
+    if (level === 3) {
+      answer += ' 发现顺序：' + (discoveryOrder.join(' → ') || '暂无') + '。';
+      if (steps[idx + 1]) answer += ' 下一步：' + steps[idx + 1].description;
+    }
+  } else if (graph) {
+    answer = prefix + graph.name + ' 第 ' + (stepNo + 1) + ' 步。' + step.description;
+    if (level >= 2) {
+      const details = graph.fields.map(([key, label]) => label + '：' + JSON.stringify(step.variables[key]));
+      answer += ' ' + details.join('；') + '。';
+    }
+    if (level === 3 && steps[idx + 1]) answer += ' 下一步：' + steps[idx + 1].description;
+  } else if (search) {
+    answer = prefix + search.title + '第 ' + (stepNo + 1) + ' 步。' + step.description;
+    if (level >= 2) answer += ' 已比较 ' + step.variables.comparisons + ' 次。';
+    if (level === 3 && steps[idx + 1]) answer += ' 下一步：' + steps[idx + 1].description;
+  } else if (sorting) {
     const { pass, index, sortedFrom } = step.variables;
     const comparison = index === null ? '' : ` 关注下标 ${index} 和 ${index + 1}。`;
     const settled = sortedFrom < arr.length ? `下标 ${sortedFrom} 到 ${arr.length - 1} 的元素已就位。` : '目前还没有确认就位的元素。';

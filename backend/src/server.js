@@ -1,9 +1,11 @@
+import { arraySearch } from '../../frontend/src/features/workbench/array-search.js';
+import { graphAlgorithm } from '../../frontend/src/features/workbench/graph-algorithms.js';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { dirname, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { handleCreateRun, handleCreateBubbleRun, handleGetRun, handleGetStep } from './routes/runs.js';
+import { handleCreateRun, handleCreateBubbleRun, handleCreateArraySearchRun, handleCreateGraphRun, handleGetRun, handleGetStep } from './routes/runs.js';
 import { handleGetExercises, handleCheckExercise } from './routes/exercises.js';
 import { getUsage } from './agent/rate-limit.js';
 import { knowledgeResponse } from './knowledge/retrieve.js';
@@ -57,6 +59,12 @@ const server = createServer(async (request, response) => {
     }
     if (pathname === '/api/algorithms/bubble-sort/runs' && method === 'POST') {
       return handleCreateBubbleRun(response, await readBody(request));
+    }
+    const algorithmRunMatch = pathname.match(/^\/api\/algorithms\/([a-z-]+)\/runs$/);
+    if (method === 'POST' && algorithmRunMatch) {
+      const [, algorithm] = algorithmRunMatch;
+      if (graphAlgorithm(algorithm)) return handleCreateGraphRun(response, await readBody(request), algorithm);
+      if (arraySearch(algorithm)) return handleCreateArraySearchRun(response, await readBody(request), algorithm);
     }
     if (pathname === '/api/algorithms/custom-array/runs' && method === 'POST') {
       if (!acceptsLocalCode(request)) {

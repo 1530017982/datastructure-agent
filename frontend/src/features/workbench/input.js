@@ -1,3 +1,6 @@
+import { arraySearch, arraySearchMaxElements } from './array-search.js';
+import { graphAlgorithm } from './graph-algorithms.js';
+
 function integer(text, label) {
   if (!/^[+-]?\d+$/.test(text) || !Number.isSafeInteger(Number(text))) throw new Error(`${label}必须为十进制安全整数。`);
   return Number(text);
@@ -19,7 +22,14 @@ export function parseInput(arrayText, targetText, algorithm = 'binary-search') {
   const targetValue = targetText.trim();
   if (!targetValue) throw new Error('目标不能为空。');
   const target = integer(targetValue, '目标');
-  const array = parseArray(arrayText, 100);
+  if (algorithm === 'block-search') {
+    const blocks = arrayText.trim() ? arrayText.split(/[;；]/).map(block => parseArray(block, arraySearchMaxElements)) : [];
+    if (blocks.length > 64) throw new Error('最多输入 64 个块。');
+    if (blocks.reduce((size, block) => size + block.length, 0) > arraySearchMaxElements) throw new Error('所有块合计最多包含 100 个元素。');
+    return { blocks, target };
+  }
+  const array = parseArray(arrayText, arraySearchMaxElements);
+  if (algorithm === 'linear-search') return { array, target };
   if (array.some((value,i) => i > 0 && value < array[i-1])) throw new Error('数组必须按非递减顺序排列，请勿自动排序或去重。');
   return { array, target };
 }
@@ -27,6 +37,19 @@ export function parseInput(arrayText, targetText, algorithm = 'binary-search') {
 function validVariables(step, algorithm) {
   const variables = step.variables;
   if (!variables) return false;
+  if (arraySearch(algorithm)) {
+    const { index, current, comparisons, ranges, blockIndex } = variables;
+    return step.algorithm === algorithm && typeof step.description === 'string' && Number.isSafeInteger(step.target) &&
+      Number.isInteger(comparisons) && comparisons >= 0 &&
+      (index === null ? current === null : Number.isInteger(index) && index >= 0 && index < step.array.length && current === step.array[index]) &&
+      (algorithm !== 'block-search' || (Array.isArray(ranges) &&
+        (blockIndex === null || (Number.isInteger(blockIndex) && blockIndex >= 0 && blockIndex < ranges.length))));
+  }
+  const graph = graphAlgorithm(algorithm);
+  if (graph) {
+    return step.algorithm === algorithm && typeof step.description === 'string' &&
+      graph.fields.every(([key]) => Object.hasOwn(variables, key));
+  }
   if (algorithm === 'custom-array') {
     const { line, index, writes } = variables;
     return typeof step.description === 'string' && Number.isInteger(line) && line > 0 && String(line) === step.lineId &&
@@ -46,9 +69,13 @@ function validVariables(step, algorithm) {
 export function validateRun(run, algorithm = 'binary-search') {
   if (!run || typeof run.runId !== 'string' || !run.runId || run.algorithm !== algorithm || typeof run.sourceVersion !== 'string' || !run.sourceVersion ||
       !Array.isArray(run.steps) || !run.steps.length || !Array.isArray(run.sourceLines) || !run.sourceLines.length) throw new Error('运行数据不完整，无法展示步骤。');
+  const graph = graphAlgorithm(algorithm);
+  if (graph && (!Array.isArray(run.graph?.nodes) || !Array.isArray(run.graph?.edges) || typeof run.graph.directed !== 'boolean')) {
+    throw new Error('缺少本次运行的图结构。');
+  }
   const ids = new Set(run.sourceLines.map(line => line?.lineId));
   if (ids.size !== run.sourceLines.length || run.sourceLines.some(line => typeof line?.lineId !== 'string' || typeof line.text !== 'string') ||
-      run.steps.some((step,i) => !step || step.stepIndex !== i || !ids.has(step.lineId) || !Array.isArray(step.array) ||
+      run.steps.some((step,i) => !step || step.stepIndex !== i || !ids.has(step.lineId) || (!graph && !Array.isArray(step.array)) ||
         !validVariables(step, algorithm))) throw new Error('步骤或源码映射不完整，无法同步展示。');
   return run;
 }
