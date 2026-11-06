@@ -1,5 +1,6 @@
-const SOURCE_VERSION = 'prim-c-v1';
+import { validateGraphInput } from './validate-util.js';
 
+const SOURCE_VERSION = 'prim-c-v1';
 const SOURCE_LINES = [
   { lineId: 'init', text: 'void prim(int graph[][MAX], int start, int n) {' },
   { lineId: 'init-key', text: '  int key[MAX]; bool inMST[MAX] = {0};' },
@@ -9,27 +10,24 @@ const SOURCE_LINES = [
   { lineId: 'find-min', text: '    int u = findMinKey(key, inMST);' },
   { lineId: 'mark-mst', text: '    if (u == -1) break; inMST[u] = 1;' },
   { lineId: 'loop-neighbors', text: '    for (int v = 0; v < n; v++) {' },
-  // 修复：使用 != INF 判断，防止 0 权边被跳过
   { lineId: 'check-relax', text: '      if (!inMST[v] && graph[u][v] != INF && graph[u][v] < key[v]) {' },
   { lineId: 'update-key', text: '        key[v] = graph[u][v]; parent[v] = u;' },
   { lineId: 'end', text: '}' }
 ];
 
 export function generatePrimSteps(input) {
-  const { nodes, edges, start, directed } = input;
-  if (directed === true) throw new Error("Prim 算法只支持无向图！");
-
+  const { nodes, start, directed } = input;
+  const validEdges = validateGraphInput(input, 'Prim');
+  
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
   const graph = Array.from({ length: n }, () => Array(n).fill(Infinity));
   
-  for (const [u, v, w] of edges) {
+  for (const { u, v, w } of validEdges) {
     const ui = nodeIndex.get(u);
     const vi = nodeIndex.get(v);
-    if (ui === undefined || vi === undefined) throw new Error("包含未声明的节点！");
-    
-    graph[ui][vi] = Math.min(graph[ui][vi], w);
-    graph[vi][ui] = Math.min(graph[vi][ui], w);
+    graph[ui][vi] = w;
+    graph[vi][ui] = w;
   }
 
   const steps = [];
@@ -54,11 +52,6 @@ export function generatePrimSteps(input) {
   }
 
   record('init', 'init', `初始化 Prim 算法。`);
-  if (!nodeIndex.has(start)) {
-    record('end', 'end', `起点 ${start} 不在图中，结束。`);
-    return { steps, result: { totalWeight: 0, mstNodes: [] }, sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES };
-  }
-
   record('init-key', 'init-key', `创建 key 数组，初始化为无穷大。`);
   const startIdx = nodeIndex.get(start);
   key[startIdx] = 0;
@@ -78,7 +71,6 @@ export function generatePrimSteps(input) {
 
     const u = nodes[uIdx];
     record('find-min', 'find-min', `找到当前 key 最小的顶点：${u} (权重: ${key[uIdx]})。`, u);
-    
     inMST.add(u);
     if (parent[uIdx] !== null) totalWeight += key[uIdx];
     record('mark-mst', 'mark-mst', `将 ${u} 加入生成树。当前总权重: ${totalWeight}。`, u);
@@ -96,7 +88,6 @@ export function generatePrimSteps(input) {
       }
     }
   }
-
   record('end', 'end', `Prim 算法结束。总权重：${totalWeight}`);
   return { steps, result: steps[steps.length - 1].result, sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES };
 }

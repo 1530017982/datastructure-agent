@@ -1,7 +1,6 @@
 import { DSU } from './dsu-util.js';
 
 const SOURCE_VERSION = 'uf-c-v1';
-
 const SOURCE_LINES = [
   { lineId: 'init', text: 'void initDSU(int n) {' },
   { lineId: 'parent-self', text: '  for (int i = 0; i < n; i++) parent[i] = i;' },
@@ -11,7 +10,9 @@ const SOURCE_LINES = [
   { lineId: 'union', text: 'void union(int x, int y) {' },
   { lineId: 'find-roots', text: '  int rootX = find(x), rootY = find(y);' },
   { lineId: 'check-root', text: '  if (rootX != rootY) {' },
-  { lineId: 'merge', text: '    parent[rootX] = rootY;' },
+  { lineId: 'check-rank', text: '    if (rank[rootX] < rank[rootY]) {' },
+  { lineId: 'merge-x-to-y', text: '      parent[rootX] = rootY;' },
+  { lineId: 'merge-y-to-x', text: '    } else { parent[rootY] = rootX; }' },
   { lineId: 'end', text: '}' }
 ];
 
@@ -66,9 +67,19 @@ export function generateUnionFindSteps(input) {
     record('check-root', 'check-root', `判断 ${rootX} 和 ${rootY} 是否相同。`, op);
 
     if (rootX !== rootY) {
+      const rankX = dsu.rank.get(rootX);
+      const rankY = dsu.rank.get(rootY);
+      
       dsu.union(x, y);
       setCount = dsu.setCount;
-      record('merge', 'merge', `根不同，按秩合并集合。当前集合数：${setCount}。`, op);
+
+      if (rankX < rankY) {
+        record('merge', 'merge-x-to-y', `rootX 的秩较小，将 ${rootX} 挂到 ${rootY} 下。`, op);
+      } else if (rankX > rankY) {
+        record('merge', 'merge-y-to-x', `rootY 的秩较小，将 ${rootY} 挂到 ${rootX} 下。`, op);
+      } else {
+        record('merge', 'merge-y-to-x', `秩相同，将 ${rootY} 挂到 ${rootX} 下，并增加 ${rootX} 的秩。`, op);
+      }
     } else {
       record('check-root', 'check-root', `根相同，无需合并。当前集合数：${setCount}。`, op);
     }

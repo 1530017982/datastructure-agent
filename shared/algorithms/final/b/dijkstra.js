@@ -1,5 +1,6 @@
-const SOURCE_VERSION = 'dijkstra-c-v1';
+import { validateGraphInput } from './validate-util.js';
 
+const SOURCE_VERSION = 'dijkstra-c-v1';
 const SOURCE_LINES = [
   { lineId: 'init', text: 'void dijkstra(int graph[][MAX], int start, int n) {' },
   { lineId: 'init-dist', text: '  int dist[MAX]; bool visited[MAX] = {0};' },
@@ -9,30 +10,24 @@ const SOURCE_LINES = [
   { lineId: 'find-min', text: '    int u = findMinDistance(dist, visited);' },
   { lineId: 'mark-visited', text: '    if (u == -1) break; visited[u] = 1;' },
   { lineId: 'loop-neighbors', text: '    for (int v = 0; v < n; v++) {' },
-  // 修复：判断 != INF，避免 0 权边被跳过
   { lineId: 'check-relax', text: '      if (!visited[v] && graph[u][v] != INF && dist[u] + graph[u][v] < dist[v]) {' },
   { lineId: 'update-dist', text: '        dist[v] = dist[u] + graph[u][v];' },
   { lineId: 'end', text: '}' }
 ];
 
 export function generateDijkstraSteps(input) {
-  const { nodes, edges, start } = input;
-  const directed = input.directed || false; 
+  const { nodes, start, directed } = input;
+  const validEdges = validateGraphInput(input, 'Dijkstra');
   
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
   const graph = Array.from({ length: n }, () => Array(n).fill(Infinity));
   
-  for (const [u, v, w] of edges) {
-    if (w < 0) throw new Error("Dijkstra 算法拒绝包含负权边的图！");
+  for (const { u, v, w } of validEdges) {
     const ui = nodeIndex.get(u);
     const vi = nodeIndex.get(v);
-    if (ui === undefined || vi === undefined) throw new Error("包含未声明的节点！");
-    
-    graph[ui][vi] = Math.min(graph[ui][vi], w);
-    if (!directed) {
-      graph[vi][ui] = Math.min(graph[vi][ui], w);
-    }
+    graph[ui][vi] = w;
+    if (!directed) graph[vi][ui] = w;
   }
 
   const steps = [];
@@ -56,11 +51,6 @@ export function generateDijkstraSteps(input) {
   }
 
   record('init', 'init', `初始化 Dijkstra，准备从起点 ${start} 开始。`);
-  if (!nodeIndex.has(start)) {
-    record('end', 'end', `起点 ${start} 不在图中，结束。`);
-    return { steps, result: {}, sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES };
-  }
-
   record('init-dist', 'init-dist', `创建距离数组 dist，所有节点初始距离为无穷大。`);
   const startIdx = nodeIndex.get(start);
   dist[startIdx] = 0;

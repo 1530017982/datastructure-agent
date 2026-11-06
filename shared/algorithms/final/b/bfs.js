@@ -1,5 +1,6 @@
-const SOURCE_VERSION = 'bfs-c-v1';
+import { validateGraphInput } from './validate-util.js';
 
+const SOURCE_VERSION = 'bfs-c-v1';
 const SOURCE_LINES = [
   { lineId: 'init', text: 'void bfs(int graph[][MAX], int start, int n) {' },
   { lineId: 'init-visited', text: '  int visited[MAX] = {0};' },
@@ -16,19 +17,18 @@ const SOURCE_LINES = [
 ];
 
 export function generateBfsSteps(input) {
-  const { nodes, edges, start } = input;
-  const directed = input.directed || false;
+  const { nodes, start, directed } = input;
+  const validEdges = validateGraphInput(input, 'BFS');
+
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
   const graph = Array.from({ length: n }, () => Array(n).fill(0));
   
-  for (const [u, v] of edges) {
+  for (const { u, v } of validEdges) {
     const ui = nodeIndex.get(u);
     const vi = nodeIndex.get(v);
-    if (ui !== undefined && vi !== undefined) {
-      graph[ui][vi] = 1;
-      if (!directed) graph[vi][ui] = 1;
-    }
+    graph[ui][vi] = 1;
+    if (!directed) graph[vi][ui] = 1;
   }
 
   const steps = [];
@@ -47,15 +47,9 @@ export function generateBfsSteps(input) {
   }
 
   record('init', 'init', `初始化 BFS，准备从起点 ${start} 开始遍历。`);
-  if (!nodeIndex.has(start)) {
-    record('end', 'end', `起点 ${start} 不在图中，遍历结束。`);
-    return { steps, result: [], sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES };
-  }
-
   record('init-visited', 'init-visited', `创建 visited 数组，标记未访问。`);
   record('init-queue', 'init-queue', `创建空队列 queue。`);
   
-  // 修复 2：动作执行后，立刻记录快照
   visited.add(start);
   discoveryOrder.push(start);
   record('mark-start', 'mark-start', `标记起点 ${start} 为已访问。`, start);
@@ -77,15 +71,13 @@ export function generateBfsSteps(input) {
         record('check-neighbor', 'check-neighbor', `发现邻接点 ${neighbor}，检查是否已访问。`, u, [u, neighbor]);
         
         if (!visited.has(neighbor)) {
-          // 修复 2：先标记，再入队，动作和快照严格绑定
           visited.add(neighbor);
           discoveryOrder.push(neighbor);
           record('mark-neighbor', 'mark-neighbor', `${neighbor} 未被访问，标记为已访问。`, u, [u, neighbor]);
-          
           queue.push(neighbor);
           record('enqueue-neighbor', 'enqueue-neighbor', `将 ${neighbor} 入队。`, u, [u, neighbor]);
         } else {
-          record('skip-neighbor', 'check-neighbor', `${neighbor} 已被访问过，跳过（防止重复入队）。`, u, [u, neighbor]);
+          record('skip-neighbor', 'check-neighbor', `${neighbor} 已被访问过，跳过。`, u, [u, neighbor]);
         }
       }
     }

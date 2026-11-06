@@ -1,5 +1,6 @@
-const SOURCE_VERSION = 'floyd-c-v1';
+import { validateGraphInput } from './validate-util.js';
 
+const SOURCE_VERSION = 'floyd-c-v1';
 const SOURCE_LINES = [
   { lineId: 'init', text: 'void floyd(int dist[][MAX], int n) {' },
   { lineId: 'init-dist', text: '  // 初始化 dist 矩阵' },
@@ -12,23 +13,20 @@ const SOURCE_LINES = [
 ];
 
 export function generateFloydSteps(input) {
-  const { nodes, edges } = input;
-  const directed = input.directed || false; 
+  const { nodes, directed } = input;
+  const validEdges = validateGraphInput(input, 'Floyd');
+  
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
-
   const dist = Array.from({ length: n }, () => Array(n).fill(Infinity));
+  
   for (let i = 0; i < n; i++) dist[i][i] = 0;
 
-  for (const [u, v, w] of edges) {
+  for (const { u, v, w } of validEdges) {
     const ui = nodeIndex.get(u);
     const vi = nodeIndex.get(v);
-    if (ui !== undefined && vi !== undefined) {
-      if (w < dist[ui][vi]) {
-        dist[ui][vi] = w;
-        if (!directed) dist[vi][ui] = w;
-      }
-    }
+    dist[ui][vi] = w;
+    if (!directed) dist[vi][ui] = w;
   }
 
   const steps = [];
@@ -69,7 +67,6 @@ export function generateFloydSteps(input) {
     if (dist[i][i] < 0) hasNegativeCycle = true;
   }
 
-  // 修复：最后一步 result 和返回值强制一致
   const finalResult = hasNegativeCycle ? 'Has Negative Cycle' : formatMatrix();
   if (hasNegativeCycle) {
     record('end', 'end', `对角线发现负数，存在负权环！`, null, null, null, finalResult);

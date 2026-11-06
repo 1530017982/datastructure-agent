@@ -1,5 +1,6 @@
-const SOURCE_VERSION = 'topo-c-v1';
+import { validateGraphInput } from './validate-util.js';
 
+const SOURCE_VERSION = 'topo-c-v1';
 const SOURCE_LINES = [
   { lineId: 'init', text: 'void topoSort(int graph[][MAX], int n) {' },
   { lineId: 'init-degree', text: '  int inDegree[MAX] = {0};' },
@@ -15,21 +16,20 @@ const SOURCE_LINES = [
 ];
 
 export function generateTopoSteps(input) {
-  const { nodes, edges } = input;
+  const { nodes } = input;
+  // 使用统一的校验工具，强制要求是有向图
+  const validEdges = validateGraphInput(input, '拓扑排序');
+
   const n = nodes.length;
   const nodeIndex = new Map(nodes.map((node, i) => [node, i]));
   const graph = Array.from({ length: n }, () => Array(n).fill(0));
   const inDegree = new Map(nodes.map(node => [node, 0]));
 
-  for (const [u, v] of edges) {
+  for (const { u, v } of validEdges) {
     const ui = nodeIndex.get(u);
     const vi = nodeIndex.get(v);
-    if (ui !== undefined && vi !== undefined) {
-      if (graph[ui][vi] === 0) { 
-        graph[ui][vi] = 1;
-        inDegree.set(v, inDegree.get(v) + 1);
-      }
-    }
+    graph[ui][vi] = 1;
+    inDegree.set(v, inDegree.get(v) + 1);
   }
 
   const steps = [];
