@@ -2,6 +2,10 @@
 
 负责人为本轮 10，原编号见[最终任务登记表](../roster.md)。建议分支 `feat/final-g-trees-design`。阶段范围与提交规则见[最终任务清单](../README.md)。
 
+## 当前交付
+
+二叉树层序遍历已通过 [PR #64](https://github.com/tw1l1ghtcc/datastructure-agent/pull/64) 合并。算法模块复核、全仓 76 项测试及 Open Watcom 四组实际运行通过。该项工作台入口与树动画待联调，其余 9 项算法待交付。下表勾选按完整接入验收记录。
+
 ## 主责
 
 负责树的遍历、重建、转换、编码和二叉排序树。
