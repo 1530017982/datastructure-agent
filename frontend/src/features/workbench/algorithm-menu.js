@@ -3,7 +3,17 @@ import { graphAlgorithm, graphAlgorithmIds } from './graph-algorithms.js';
 const chapters = [
   ['第六章 · 图', graphAlgorithmIds.map(id => [id, graphAlgorithm(id).title])],
   ['第七章 · 查找', [['binary-search', '二分查找'], ['linear-search', '顺序查找'], ['block-search', '分块查找']]],
-  ['第八章 · 排序', [['bubble-sort', '冒泡排序']]],
+  // --- A包修改：补全所有比较排序算法 ---
+  ['第八章 · 排序', [
+    ['bubble-sort', '冒泡排序'],
+    ['insertion-sort', '直接插入排序'],
+    ['binary-insertion-sort', '折半插入排序'],
+    ['shell-sort', '希尔排序'],
+    ['selection-sort', '简单选择排序'],
+    ['quick-sort', '快速排序'],
+    ['heap-sort', '堆排序'],
+    ['merge-sort', '归并排序'],
+  ]],
   ['自定义', [['custom-array', '自定义代码']]]
 ];
 

@@ -13,7 +13,9 @@ function parseArray(arrayText, limit) {
 }
 
 export function parseInput(arrayText, targetText, algorithm = 'binary-search') {
-  if (algorithm === 'bubble-sort') return { array: parseArray(arrayText, 24) };
+  // 兼容所有排序算法（包括原有的 bubble-sort 和新增的 -sort 结尾算法）
+  if (algorithm.endsWith('-sort')) return { array: parseArray(arrayText, 24) };
+  
   if (algorithm === 'custom-array') {
     const array = parseArray(arrayText, 24);
     if (array.some(value => value < -2147483648 || value > 2147483647)) throw new Error('自定义代码使用 32 位整数。');
@@ -56,12 +58,12 @@ function validVariables(step, algorithm) {
       Number.isInteger(writes) && writes >= 0 &&
       (index === null || (Number.isInteger(index) && index >= 0 && index < step.array.length));
   }
-  if (algorithm === 'bubble-sort') {
-    const { index, pass, sortedFrom } = variables;
-    return typeof step.description === 'string' && Number.isInteger(pass) && pass >= 0 &&
-      Number.isInteger(sortedFrom) && sortedFrom >= 0 && sortedFrom <= step.array.length &&
-      (index === null || (Number.isInteger(index) && index >= 0 && index + 1 < step.array.length));
+  
+  // 兼容所有排序算法
+  if (algorithm.endsWith('-sort')) {
+    return typeof step.description === 'string';
   }
+  
   return Number.isSafeInteger(variables.left) && Number.isSafeInteger(variables.right) &&
     (variables.mid === null || Number.isSafeInteger(variables.mid));
 }
