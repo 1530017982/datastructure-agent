@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { handleCreateRun, handleCreateBubbleRun, handleCreateArraySearchRun, handleCreateGraphRun, handleGetRun, handleGetStep } from './routes/runs.js';
+import { handleCreateRun, handleCreateBubbleRun, handleCreateSortRun, handleCreateArraySearchRun, handleCreateGraphRun, handleGetRun, handleGetStep } from './routes/runs.js';
 import { handleGetExercises, handleCheckExercise } from './routes/exercises.js';
 import { getUsage } from './agent/rate-limit.js';
 import { knowledgeResponse } from './knowledge/retrieve.js';
@@ -65,6 +65,10 @@ const server = createServer(async (request, response) => {
       const [, algorithm] = algorithmRunMatch;
       if (graphAlgorithm(algorithm)) return handleCreateGraphRun(response, await readBody(request), algorithm);
       if (arraySearch(algorithm)) return handleCreateArraySearchRun(response, await readBody(request), algorithm);
+      // --- 新增：将新加的排序算法路由过去 ---
+      if (algorithm.endsWith('-sort') && algorithm !== 'bubble-sort') {
+        return handleCreateSortRun(response, await readBody(request), algorithm);
+      }
     }
     if (pathname === '/api/algorithms/custom-array/runs' && method === 'POST') {
       if (!acceptsLocalCode(request)) {
@@ -107,7 +111,6 @@ const server = createServer(async (request, response) => {
 
     // 4. 05 Agent 解释路由
     if (pathname === '/api/agent/explain' && method === 'POST') {
-      // P1 FIX: mockEnabled 优先，即使有 Key 也走 mock
       if (mockEnabled) {
         try {
           const body = await readBody(request);
@@ -151,7 +154,7 @@ const server = createServer(async (request, response) => {
       });
     }
 
-    // 5. 用量查询接口 —— P5 FIX: 支持 ?sessionId=xxx 查询参数
+    // 5. 用量查询接口
     if (pathname === '/api/agent/usage' && method === 'GET') {
       const url = new URL(request.url, 'http://localhost');
       const querySessionId = url.searchParams.get('sessionId');
