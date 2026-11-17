@@ -1,4 +1,14 @@
 // backend/src/routes/runs.js
+import { generateAvlSteps } from '../../../shared/algorithms/final/d/avl-tree.js';
+import { generateRedBlackSteps } from '../../../shared/algorithms/final/d/red-black-tree.js';
+import { generateHashLinearProbingSteps } from '../../../shared/algorithms/final/d/hash-linear-probing.js';
+import { generateHashQuadraticProbingSteps } from '../../../shared/algorithms/final/d/hash-quadratic-probing.js';
+import { generateHashDoubleHashingSteps } from '../../../shared/algorithms/final/d/hash-double-hashing.js';
+import { generateHashChainingSteps } from '../../../shared/algorithms/final/d/hash-chaining.js';
+import { generateBinaryTreeLevelOrderSteps } from '../../../shared/algorithms/final/g/binary-tree-level-order.js';
+import { algorithms as cAlgorithms } from '../../../shared/algorithms/final/c/index.js';
+import { validateUnionFindInput } from '../../../frontend/src/features/workbench/union-find-input.js';
+import { generateUnionFindSteps } from '../../../shared/algorithms/final/b/union-find.js';
 import { generateSteps } from '../../../shared/algorithms/binarySearch.js';
 import { generateBubbleSteps } from '../../../shared/algorithms/bubbleSort.js';
 import { graphAlgorithm, graphMaxEdges, graphMaxWeight } from '../../../frontend/src/features/workbench/graph-algorithms.js';
@@ -51,6 +61,64 @@ export function handleCreateBubbleRun(res, body) {
     return sendError(res, 400, 'INVALID_INPUT', '数组必须包含 0 到 24 个安全整数');
   }
   const run = createRun({ algorithm: 'bubble-sort', ...generateBubbleSteps(array) });
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(run));
+}
+export function handleCreateLevelOrderRun(res, body) {
+  let input, result;
+  try {
+    input=JSON.parse(body);
+    result=generateBinaryTreeLevelOrderSteps(input);
+  } catch(error) {
+    if (!(error instanceof TypeError || error instanceof SyntaxError)) throw error;
+    return sendError(res,400,'INVALID_INPUT',error.message);
+  }
+  res.writeHead(200,{'Content-Type':'application/json'});
+  res.end(JSON.stringify(createRun({algorithm:'binary-tree-level-order',input,...result})));
+}
+
+const dGenerators={
+  'avl-tree':generateAvlSteps,'red-black-tree':generateRedBlackSteps,
+  'hash-linear-probing':generateHashLinearProbingSteps,
+  'hash-quadratic-probing':generateHashQuadraticProbingSteps,
+  'hash-double-hashing':generateHashDoubleHashingSteps,
+  'hash-chaining':generateHashChainingSteps
+};
+export function handleCreateDRun(res,body,algorithm){
+  let input,result;
+  try{
+    input=JSON.parse(body);
+    if(!input || typeof input!=='object' || Array.isArray(input))throw new TypeError('输入必须为对象。');
+    result=dGenerators[algorithm](input);
+  }catch(error){
+    if(!(error instanceof TypeError || error instanceof SyntaxError))throw error;
+    return sendError(res,400,'INVALID_INPUT',error.message);
+  }
+  res.writeHead(200,{'Content-Type':'application/json'});
+  res.end(JSON.stringify(createRun({algorithm,input,...result})));
+}
+
+export function handleCreateCRun(res, body, algorithm) {
+  let input, result;
+  try {
+    input = JSON.parse(body);
+    result = cAlgorithms[algorithm].generate(input);
+  } catch (error) {
+    if (!(error instanceof TypeError || error instanceof SyntaxError)) throw error;
+    return sendError(res, 400, 'INVALID_INPUT', error.message);
+  }
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(createRun({ algorithm, input, ...result })));
+}
+
+export function handleCreateUnionFindRun(res, body) {
+  let input;
+  try {
+    input = validateUnionFindInput(JSON.parse(body));
+  } catch (error) {
+    return sendError(res, 400, 'INVALID_INPUT', error.message);
+  }
+  const run = createRun({ algorithm: 'union-find', input, ...generateUnionFindSteps(input) });
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(run));
 }

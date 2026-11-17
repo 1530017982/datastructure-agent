@@ -1,3 +1,4 @@
+import { dataAlgorithm as cAlgorithm } from './data-algorithms.js';
 import { arraySearch } from './array-search.js';
 import { graphAlgorithm } from './graph-algorithms.js';
 
@@ -104,7 +105,7 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
       query.set('unit', unit);
       if (section && /^[a-z0-9-]{1,50}$/.test(section)) query.set('section', section);
     }
-    if (name === 'workbench' && (['binary-search', 'custom-array'].includes(requestedAlgorithm) || requestedAlgorithm?.endsWith('-sort') || graphAlgorithm(requestedAlgorithm) || arraySearch(requestedAlgorithm))) {
+    if (name === 'workbench' && (['insertion-sort', 'binary-insertion-sort', 'shell-sort', 'selection-sort', 'quick-sort', 'heap-sort', 'merge-sort', 'binary-search', 'bubble-sort', 'custom-array', 'union-find', 'binary-tree-level-order'].includes(requestedAlgorithm) || graphAlgorithm(requestedAlgorithm) || arraySearch(requestedAlgorithm) || cAlgorithm(requestedAlgorithm))) {
       query.set('algorithm', requestedAlgorithm);
     }
     const hash = '#' + name + (query.size ? '?' + query : '');
@@ -211,12 +212,24 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
     navigate,
     setAlgorithm(value) {
       algorithm = value;
-      panel.querySelector('.tutor-practice').hidden = Boolean(graphAlgorithm(value) || arraySearch(value));
+      panel.querySelector('.tutor-practice').hidden = Boolean(graphAlgorithm(value) || arraySearch(value) || cAlgorithm(value) || value === 'union-find' || value === 'binary-tree-level-order');
       const tutorUnavailable = value === 'custom-array';
       if (tutorUnavailable && open) show(false, false);
       ball.hidden = currentPage !== 'workbench' || tutorUnavailable;
     },
     setContext(context) {
+      if (algorithm === 'binary-tree-level-order') {
+        $('tutor-prompt').textContent='为什么要先把左孩子加入队列？';
+        return;
+      }
+      if (cAlgorithm(algorithm)) {
+        $('tutor-prompt').textContent = '这一步改变了哪些状态，为什么？';
+        return;
+      }
+      if (algorithm === 'union-find') {
+        $('tutor-prompt').textContent = '这次合并为什么改变了父节点和集合数量？';
+        return;
+      }
       if (arraySearch(algorithm)) {
         $('tutor-prompt').textContent = algorithm === 'block-search' ? '为什么可以跳过这一块？' : '顺序查找遇到重复值时会返回哪个下标？';
         return;

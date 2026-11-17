@@ -136,9 +136,52 @@
           <ul id="algorithm-chapters" class="algorithm-menu-list" aria-label="算法章节" hidden></ul>
         </div>
       </header>
+      <div id="tree-summary" class="uf-summary" hidden><p id="tree-summary-text"></p><button id="tree-edit" type="button" class="secondary">编辑输入</button></div>
+      <div id="c-summary" class="uf-summary" hidden><p id="c-summary-text"></p><button id="c-edit" type="button" class="secondary">编辑输入</button></div>
+      <div id="uf-summary" class="uf-summary" hidden><p id="uf-summary-text"></p><button id="uf-edit" type="button" class="secondary">编辑输入</button></div>
       <form id="run-form" class="input-panel" aria-label="创建算法运行">
         <label class="array-field" for="arrInput"><span id="array-label">有序数组</span><input id="arrInput" name="array" type="text" autocomplete="off" placeholder="例如：1, 3, 5, 7, 9" aria-describedby="input-help msgBox"></label>
         <label id="target-field" for="targetInput">目标值<input id="targetInput" name="target" type="text" inputmode="numeric" autocomplete="off" placeholder="例如：7" aria-describedby="msgBox"></label>
+        <div id="tree-fields" hidden>
+          <section id="tree-node-step">
+            <label for="tree-nodes">第 1 步 · 填写节点<input id="tree-nodes" placeholder="例如：A, B, C, D" autocomplete="off"></label>
+            <p id="tree-count" class="muted">共 0 个节点（最多 64 个，留空表示空树）</p>
+            <button id="tree-next" type="button">下一步</button>
+          </section>
+          <section id="tree-child-step" hidden>
+            <label for="tree-root">第 2 步 · 选择根节点<select id="tree-root"></select></label>
+            <p class="muted">为每个节点选择左右孩子，空孩子留空。所有节点须能从根到达，不能有环或共享孩子。</p>
+            <div id="tree-children"></div>
+            <button id="tree-back" type="button" class="secondary">上一步</button>
+          </section>
+        </div>
+        <div id="c-fields" hidden>
+          <section id="c-data-step">
+            <label for="c-data"><span id="c-data-label"></span><textarea id="c-data" rows="2" spellcheck="false"></textarea></label>
+            <label id="c-param-field" for="c-param"><span id="c-param-label"></span><input id="c-param" type="number" step="1"></label>
+            <p id="c-help" class="muted"></p>
+            <label id="d-target-field" for="d-target" hidden>查询值（可选）<input id="d-target" placeholder="留空则只插入"></label>
+            <button id="c-next" type="button">下一步</button>
+          </section>
+          <section id="c-query-step" hidden>
+            <label for="c-queries"><span id="data-query-label">第 2 步 · 查询值（可选）</span><input id="c-queries" placeholder="逗号分隔，留空则只建树"></label>
+            <button id="c-back" type="button" class="secondary">上一步</button>
+          </section>
+        </div>
+        <div id="uf-fields" hidden>
+          <section id="uf-elements-step">
+            <label for="uf-elements">第 1 步 · 填写元素<input id="uf-elements" autocomplete="off" placeholder="例如：A, B, C, D"></label>
+            <p id="uf-count" class="muted" aria-live="polite">共 0 个元素</p>
+            <button id="uf-next" type="button">下一步</button>
+          </section>
+          <section id="uf-operations-step" hidden>
+            <p id="uf-elements-summary" class="muted"></p>
+            <p class="muted">第 2 步 · 添加合并或查找操作，按从上到下的顺序执行。最多 60 个操作。</p>
+            <div id="uf-operations"></div>
+            <button id="uf-add" type="button" class="secondary">＋ 添加操作</button>
+            <button id="uf-back" type="button" class="secondary">上一步</button>
+          </section>
+        </div>
         <div id="bfs-run-summary" hidden>
           <p id="bfs-run-detail"></p>
           <button id="bfs-edit" type="button" class="secondary" aria-controls="bfs-fields">编辑输入</button>
