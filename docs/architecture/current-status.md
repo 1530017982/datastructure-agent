@@ -1,17 +1,17 @@
 # 当前项目状态
 
-更新：2026-11-03。核对基线为 `main` 的 `8a909c2`，包含已合并的 [PR #42](https://github.com/tw1l1ghtcc/datastructure-agent/pull/42)。后续分工见[最终任务清单](../team/final/README.md)，历史进度见[第一次任务归档](../team/phase-1/README.md)。
+更新：2026-11-17。核对基线为main的`6ff6d2c`，包含已合并的[PR #67](https://github.com/tw1l1ghtcc/datastructure-agent/pull/67)。本轮54项中29项算法实现已合并、16项已接入；加上原有二分和冒泡，主分支共18项内置算法，自定义代码另计。具体交付与证据见[最终进度](../team/final/progress.md)，历史见[第一次任务归档](../team/phase-1/README.md)。
 
 ## 已接入的程序
 
 | 部分 | 当前行为 | 实现与检查入口 |
 |---|---|---|
-| 内置算法 | 二分查找和冒泡排序由服务端生成真实步骤，共用播放、查询和源码高亮。二分查找展示完整的 `binary_search`（`c-v2`） | [API 契约](api-contract.md) |
+| 内置算法 | 二分、顺序、分块查找；冒泡及A包7种比较排序；BFS、DFS、Prim、Kruskal、Dijkstra、Floyd、拓扑排序。18项由服务端生成步骤，共用播放、查询和源码高亮 | [最终进度](../team/final/progress.md)、[A包验收](../team/final/a-validation.md) |
 | 五页导航 | 课程目录、算法工作台、学习笔记、过程练习、错题与记录；支持地址直达及浏览器历史导航 | [工作台说明](../../frontend/src/features/workbench/README.md) |
 | 课程目录与笔记 | 八章、71 个目录入口。二分查找和冒泡排序的笔记可打开并选中对应算法，默认启动进入工作台 | [PR #38](https://github.com/tw1l1ghtcc/datastructure-agent/pull/38)、[PR #42](https://github.com/tw1l1ghtcc/datastructure-agent/pull/42) |
 | 动画与代码 | 默认 SVG 柱形数组视图，源码和白底动画并排，本步解释背景透明。二分查找可用 `?viz=legacy` 回到旧版；时间轴、回退、平移缩放和全屏共用 | [动画说明](../../frontend/src/features/visualization/README.md) |
 | 自定义代码 | Windows x64 本机使用随仓库提供的 Open Watcom 编译受限 C/C++ 数组函数，按实际数组写入回放并高亮源码 | [本地使用](../../README.md#自定义代码)、[API 契约](api-contract.md) |
-| 步骤聊天 | 二分查找和冒泡排序可针对当前步骤提问。携带当前和上一步、源码及最近最多 10 轮；默认 DeepSeek Flash，显式 Mock 优先 | [Agent 说明](../../backend/src/agent/README.md) |
+| 步骤聊天 | 18项内置算法接入当前步骤问答，携带当前/上一步、源码及最近最多10轮；排序使用真实排序变量。默认DeepSeek Flash，显式Mock优先；新排序真实模型效果尚未专项评估 | [Agent说明](../../backend/src/agent/README.md)、[A包验收](../team/final/a-validation.md) |
 | 聊天窗口 | 接近整屏高度；点击外部、缩小键或Escape收起，保留草稿/历史/等待中的回答；未运行或等待回复时也能写草稿，发送需有效运行且无进行中的请求 | PR #29/#30；对话球回弹PR #31已撤回并关闭 |
 | 独立知识接口 | 保留自编二分查找知识卡的目录和查询；网页「学习笔记」读取章节笔记 | [知识接口](../../backend/src/knowledge/README.md) |
 | 练习与记录 | 两种算法各 10 道固定过程题，支持程序判分、逐级提示和错题重练。最近 200 次作答保存在当前浏览器 | [练习说明](../../frontend/src/features/exercises/README.md)、[记录说明](../../frontend/src/features/records/README.md) |
@@ -26,12 +26,13 @@
 
 ## 仍需完成的工作
 
-- 08独立全流程复核、真实模型三类对比及可复核用量/输出证据仍待提供；现有Mock和本地桩结果不代替这些工作。
+- 独立全流程复核、真实模型对比及可复核用量/输出证据仍需完善；现有Mock和本地桩结果不代替这些工作。
 - 真实访谈、学生试用与匿名汇总以可核验证据为准。仓库已合并展示材料、两份设计说明书，课程平台提交情况另行确认。
-- 后续扩展其他算法及数据结构视图，复核 408 覆盖。自定义代码当前限本机整数数组函数。
+- 本轮其余13项已合并算法的主工作台入口、25项尚待交付实现，以及图、树、哈希等正式视图继续跟踪。自定义代码当前限本机整数数组函数。
+- PR #66的整程序引擎和新增示例仍未合并；不能计入主分支完成数。本地集成分支的额外入口也不等同于已发布功能。
 
 ## 文档和检查的适用范围
 
 现行运行方式见根README，公共字段见API/trace契约。`docs/prototype`是2026-10-20设计快照，其模拟接口提示及旧截图不代表当前生产界面；日期命名的检查文档和证据保留当时的真实结果。早期任务单的聊天检索/引用、速度控件等要求，以本页和[范围决策](../product/scope.md)记录的用户调整为准，不改变成员主责。
 
-`content/coverage` 的版本化资料保留原内容规划。现行功能以上表和实际代码为准。PR #42 记录了 49 项测试、26 组后端验收和浏览器回归。复现命令见[测试说明](../../tests/README.md)。
+`content/coverage`的版本化资料保留原内容规划。现行功能以上表和实际代码为准。PR #67修复提交6eaa6ad记录84项正式测试、7056组排序结果和7份展示C编译检查；边界见[A包验收](../team/final/a-validation.md)。PR #42的49项测试、26组后端验收和浏览器记录作为历史证据保留。复现命令见[测试说明](../../tests/README.md)。
