@@ -1,11 +1,10 @@
-const SOURCE_VERSION = 'merge-c-v2';
+const SOURCE_VERSION = 'merge-c-v3';
 const SOURCE_LINES = [
   { lineId: 'init', text: 'void merge_sort(long long a[], int low, int high) {' },
   { lineId: 'base-check', text: '  if (low >= high) return;' },
   { lineId: 'calc-mid', text: '  int mid = low + (high - low) / 2;' },
   { lineId: 'recurse-left', text: '  merge_sort(a, low, mid);' },
   { lineId: 'recurse-right', text: '  merge_sort(a, mid + 1, high);' },
-  // 修复：定义MAX为100，与接口限制对齐
   { lineId: 'declare', text: '  long long temp[100]; int i = low, j = mid + 1, k = 0;' },
   { lineId: 'compare', text: '  while (i <= mid && j <= high) {' },
   { lineId: 'pick-left', text: '    if (a[i] <= a[j]) temp[k++] = a[i++];' },
@@ -19,10 +18,11 @@ const SOURCE_LINES = [
 export function generateMergeSortSteps(input) {
   const array = [...input];
   const steps = [];
+  
+  // 使用局部状态对象，避免全局污染
   let state = { low: 0, high: 0, mid: 0, i: 0, j: 0, k: 0, p: null, temp: [] };
 
   function record(event, lineId, description, extra = {}) {
-    // 修复：严格分离当前状态和额外覆盖，确保temp是独立的深拷贝
     const vars = { ...state, ...extra };
     vars.temp = [...(extra.temp ?? state.temp)];
     steps.push({
@@ -35,7 +35,10 @@ export function generateMergeSortSteps(input) {
   record('init', 'init', '开始归并排序。');
 
   function mergeSort(low, high) {
-    state.low = low; state.high = high; state.i = null; state.j = null; state.k = null; state.p = null;
+    // 初始化当前帧的状态
+    state.low = low; state.high = high; state.mid = null;
+    state.i = null; state.j = null; state.k = null; state.p = null;
+    
     if (low >= high) return;
 
     let mid = Math.floor((low + high) / 2);
@@ -45,11 +48,15 @@ export function generateMergeSortSteps(input) {
     mergeSort(low, mid);
     mergeSort(mid + 1, high);
 
+    // 【核心修复】：递归返回后，必须重新恢复当前帧的 low/high/mid，防止被子调用污染
+    state.low = low; state.high = high; state.mid = mid;
+    state.i = low; state.j = mid + 1; state.k = 0;
+    
     let temp = [];
-    let i = low, j = mid + 1, k = 0;
-    state.i = i; state.j = j; state.k = k; state.temp = temp;
+    state.temp = temp;
     record('merge-start', 'declare', `准备合并区间 [${low}, ${mid}] 和 [${mid + 1}, ${high}]。`);
 
+    let i = low, j = mid + 1, k = 0;
     while (i <= mid && j <= high) {
       state.i = i; state.j = j;
       record('compare', 'compare', `比较 A[${i}] 和 A[${j}]。`);
@@ -79,8 +86,7 @@ export function generateMergeSortSteps(input) {
       j++; k++;
     }
 
-    // 修复：k 表示归并段长度不变，用 p 作为写回游标
-    state.k = k; state.p = 0;
+    state.k = k; state.p = 0; state.i = null; state.j = null;
     for (let p = 0; p < k; p++) {
       array[low + p] = temp[p];
       state.p = p + 1;
