@@ -1,4 +1,4 @@
-const SOURCE_VERSION = 'shell-c-v1';
+const SOURCE_VERSION = 'shell-c-v2';
 const SOURCE_LINES = [
   { lineId: 'init', text: 'void shell_sort(long long a[], int n) {' },
   { lineId: 'init-gap', text: '  for (int gap = n / 2; gap > 0; gap /= 2) {' },
@@ -18,15 +18,15 @@ const SOURCE_LINES = [
 export function generateShellSortSteps(input) {
   const array = [...input];
   const steps = [];
-  let currentGap = 0, currentI = 0, currentJ = 0, currentTemp = null;
+  let state = { gap: 0, i: 0, j: 0, temp: null, insertIndex: null };
 
-  function record(event, lineId, description, variables = {}) {
+  function record(event, lineId, description, extra = {}) {
     const done = event === 'sorted';
     steps.push({
       schemaVersion: '1.0', algorithm: 'shell-sort', stepIndex: steps.length,
       sourceVersion: SOURCE_VERSION, event, lineId, array: [...array],
-      variables: { gap: currentGap, i: currentI, j: currentJ, temp: currentTemp, ...variables },
-      description, done, result: done ? [...array] : null,
+      variables: { ...state, ...extra }, description, done,
+      result: done ? [...array] : null,
     });
   }
 
@@ -37,36 +37,34 @@ export function generateShellSortSteps(input) {
   }
 
   for (let gap = Math.floor(array.length / 2); gap > 0; gap = Math.floor(gap / 2)) {
-    currentGap = gap;
-    record('gap', 'init-gap', `当前增量 gap = ${gap}。`, { gap });
+    state.gap = gap;
+    record('gap', 'init-gap', `当前增量 gap = ${gap}。`);
 
     for (let i = gap; i < array.length; i++) {
-      currentI = i;
-      let temp = array[i];
-      currentTemp = temp;
+      state.i = i;
+      state.temp = array[i];
       let j = i;
-      currentJ = j;
-      record('select', 'temp', `取出 A[${i}] = ${temp}，在相隔 gap 的序列中寻找插入位置。`, { gap, i, j, temp });
+      state.j = j; state.insertIndex = null;
+      record('select', 'temp', `取出 A[${i}] = ${state.temp}。`);
 
-      while (j >= gap && array[j - gap] > temp) {
-        currentJ = j;
-        record('compare', 'compare', `比较 A[${j - gap}] = ${array[j - gap]} 和 ${temp}，前者较大，需要后移。`, { gap, i, j, temp });
+      while (j >= gap && array[j - gap] > state.temp) {
+        record('compare', 'compare', `比较 A[${j - gap}] = ${array[j - gap]} 和 ${state.temp}，前者较大。`);
         array[j] = array[j - gap];
-        record('move', 'move', `将 A[${j - gap}] 移动到位置 ${j}。`, { gap, i, j, temp });
+        record('move', 'move', `将 A[${j - gap}] 后移。`);
         j -= gap;
-        currentJ = j;
+        state.j = j;
       }
       
       if (j >= gap) {
-          record('compare', 'compare', `比较 A[${j - gap}] = ${array[j - gap]} 和 ${temp}，前者较小，停止后移。`, { gap, i, j, temp });
+        record('compare', 'compare', `比较 A[${j - gap}] = ${array[j - gap]} 和 ${state.temp}，前者小于或等于，停止后移。`);
       }
 
-      array[j] = temp;
-      currentJ = j;
-      record('insert', 'insert', `将 ${temp} 插入到位置 ${j}。`, { gap, i, j, temp });
+      array[j] = state.temp;
+      state.insertIndex = j;
+      record('insert', 'insert', `将 ${state.temp} 插入到位置 ${j}。`);
     }
   }
 
-  record('sorted', 'done', '排序完成，数组已按从小到大排列。');
+  record('sorted', 'done', '排序完成。');
   return { steps, result: array, sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES };
 }

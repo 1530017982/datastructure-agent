@@ -1,11 +1,12 @@
-const SOURCE_VERSION = 'merge-c-v1';
+const SOURCE_VERSION = 'merge-c-v2';
 const SOURCE_LINES = [
   { lineId: 'init', text: 'void merge_sort(long long a[], int low, int high) {' },
   { lineId: 'base-check', text: '  if (low >= high) return;' },
   { lineId: 'calc-mid', text: '  int mid = low + (high - low) / 2;' },
   { lineId: 'recurse-left', text: '  merge_sort(a, low, mid);' },
   { lineId: 'recurse-right', text: '  merge_sort(a, mid + 1, high);' },
-  { lineId: 'declare', text: '  long long temp[MAX]; int i = low, j = mid + 1, k = 0;' },
+  // 修复：定义MAX为100，与接口限制对齐
+  { lineId: 'declare', text: '  long long temp[100]; int i = low, j = mid + 1, k = 0;' },
   { lineId: 'compare', text: '  while (i <= mid && j <= high) {' },
   { lineId: 'pick-left', text: '    if (a[i] <= a[j]) temp[k++] = a[i++];' },
   { lineId: 'pick-right', text: '    else temp[k++] = a[j++];' },
@@ -18,72 +19,75 @@ const SOURCE_LINES = [
 export function generateMergeSortSteps(input) {
   const array = [...input];
   const steps = [];
-  let currentLow = 0, currentHigh = 0, currentMid = 0, currentI = 0, currentJ = 0, currentK = 0;
-  let currentTemp = [];
+  let state = { low: 0, high: 0, mid: 0, i: 0, j: 0, k: 0, p: null, temp: [] };
 
-  function record(event, lineId, description, variables = {}) {
+  function record(event, lineId, description, extra = {}) {
+    // 修复：严格分离当前状态和额外覆盖，确保temp是独立的深拷贝
+    const vars = { ...state, ...extra };
+    vars.temp = [...(extra.temp ?? state.temp)];
     steps.push({
       schemaVersion: '1.0', algorithm: 'merge-sort', stepIndex: steps.length,
       sourceVersion: SOURCE_VERSION, event, lineId, array: [...array],
-      variables: { low: currentLow, high: currentHigh, mid: currentMid, i: currentI, j: currentJ, k: currentK, temp: [...currentTemp], ...variables },
-      description, done: false, result: null,
+      variables: vars, description, done: false, result: null,
     });
   }
 
   record('init', 'init', '开始归并排序。');
 
   function mergeSort(low, high) {
-    currentLow = low; currentHigh = high;
+    state.low = low; state.high = high; state.i = null; state.j = null; state.k = null; state.p = null;
     if (low >= high) return;
 
     let mid = Math.floor((low + high) / 2);
-    currentMid = mid;
-    record('divide', 'calc-mid', `将区间 [${low}, ${high}] 从中点 ${mid} 分开。`, { low, high, mid });
+    state.mid = mid;
+    record('divide', 'calc-mid', `将区间 [${low}, ${high}] 从 ${mid} 分开。`);
 
     mergeSort(low, mid);
     mergeSort(mid + 1, high);
 
     let temp = [];
     let i = low, j = mid + 1, k = 0;
-    currentI = i; currentJ = j; currentK = k; currentTemp = [];
-    record('merge-start', 'declare', `准备合并区间 [${low}, ${mid}] 和 [${mid + 1}, ${high}]。`, { low, high, mid, i, j, k, temp });
+    state.i = i; state.j = j; state.k = k; state.temp = temp;
+    record('merge-start', 'declare', `准备合并区间 [${low}, ${mid}] 和 [${mid + 1}, ${high}]。`);
 
     while (i <= mid && j <= high) {
-      currentI = i; currentJ = j; currentTemp = [...temp];
-      record('compare', 'compare', `比较左半部分的 A[${i}] = ${array[i]} 和右半部分的 A[${j}] = ${array[j]}。`, { low, high, mid, i, j, k, temp });
+      state.i = i; state.j = j;
+      record('compare', 'compare', `比较 A[${i}] 和 A[${j}]。`);
       if (array[i] <= array[j]) {
         temp.push(array[i]);
-        currentTemp = [...temp]; currentK = k + 1;
-        record('pick', 'pick-left', `A[${i}] 较小，放入临时数组 temp[${k}]。`, { low, high, mid, i, j, k, temp });
-        i++;
+        state.temp = [...temp]; state.i = i + 1; state.k = k + 1;
+        record('pick', 'pick-left', `将 A[${i}] 放入临时数组。`, { pickedValue: array[i] });
+        i++; k++;
       } else {
         temp.push(array[j]);
-        currentTemp = [...temp]; currentK = k + 1;
-        record('pick', 'pick-right', `A[${j}] 较小，放入临时数组 temp[${k}]。`, { low, high, mid, i, j, k, temp });
-        j++;
+        state.temp = [...temp]; state.j = j + 1; state.k = k + 1;
+        record('pick', 'pick-right', `将 A[${j}] 放入临时数组。`, { pickedValue: array[j] });
+        j++; k++;
       }
-      k++;
     }
     
     while (i <= mid) { 
       temp.push(array[i]); 
-      currentI = i; currentK = k; currentTemp = [...temp];
-      record('pick', 'pick-remain', `左半部分剩余元素 A[${i}] 放入临时数组。`, { low, high, mid, i, j, k, temp }); 
+      state.temp = [...temp]; state.i = i + 1; state.k = k + 1;
+      record('pick', 'pick-remain', `左半部分剩余 A[${i}] 放入临时数组。`, { pickedValue: array[i] }); 
       i++; k++;
     }
     while (j <= high) { 
       temp.push(array[j]); 
-      currentJ = j; currentK = k; currentTemp = [...temp];
-      record('pick', 'pick-remain', `右半部分剩余元素 A[${j}] 放入临时数组。`, { low, high, mid, i, j, k, temp }); 
+      state.temp = [...temp]; state.j = j + 1; state.k = k + 1;
+      record('pick', 'pick-remain', `右半部分剩余 A[${j}] 放入临时数组。`, { pickedValue: array[j] }); 
       j++; k++;
     }
 
-    for (let p = 0; p < temp.length; p++) {
+    // 修复：k 表示归并段长度不变，用 p 作为写回游标
+    state.k = k; state.p = 0;
+    for (let p = 0; p < k; p++) {
       array[low + p] = temp[p];
-      currentTemp = [...temp]; currentK = p + 1;
-      record('copy', 'copy-back', `将 temp[${p}] = ${temp[p]} 写回 A[${low + p}]。`, { low, high, mid, i, j, k: p, temp });
+      state.p = p + 1;
+      record('copy', 'copy-back', `将 temp[${p}] = ${temp[p]} 写回 A[${low + p}]。`);
     }
-    record('merge', 'copy-back', `合并完成，区间 [${low}, ${high}] 已有序。`, { low, high, mid, i, j, k: temp.length, temp });
+    state.p = null;
+    record('merge', 'copy-back', `区间 [${low}, ${high}] 合并完成。`);
   }
 
   mergeSort(0, array.length - 1);
@@ -91,8 +95,8 @@ export function generateMergeSortSteps(input) {
   steps.push({
     schemaVersion: '1.0', algorithm: 'merge-sort', stepIndex: steps.length,
     sourceVersion: SOURCE_VERSION, event: 'sorted', lineId: 'done', array: [...array],
-    variables: { low: 0, high: array.length - 1, mid: null, i: null, j: null, k: null, temp: [] },
-    description: '归并排序完成，数组已按从小到大排列。', done: true, result: [...array],
+    variables: { low: 0, high: array.length - 1, mid: null, i: null, j: null, k: null, p: null, temp: [] },
+    description: '排序完成。', done: true, result: [...array],
   });
 
   return { steps, result: array, sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES };

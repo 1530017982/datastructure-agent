@@ -1,4 +1,4 @@
-const SOURCE_VERSION = 'binary-insertion-c-v1';
+const SOURCE_VERSION = 'binary-insertion-c-v2';
 const SOURCE_LINES = [
   { lineId: 'init', text: 'void binary_insertion_sort(long long a[], int n) {' },
   { lineId: 'loop-i', text: '  for (int i = 1; i < n; ++i) {' },
@@ -20,15 +20,15 @@ const SOURCE_LINES = [
 export function generateBinaryInsertionSortSteps(input) {
   const array = [...input];
   const steps = [];
-  let currentI = 0, currentL = 0, currentR = -1, currentM = -1, currentTemp = null;
+  let state = { i: 0, left: 0, right: -1, mid: null, temp: null, insertIndex: null };
 
-  function record(event, lineId, description, variables = {}) {
+  function record(event, lineId, description, extra = {}) {
     const done = event === 'sorted';
     steps.push({
       schemaVersion: '1.0', algorithm: 'binary-insertion-sort', stepIndex: steps.length,
       sourceVersion: SOURCE_VERSION, event, lineId, array: [...array],
-      variables: { i: currentI, left: currentL, right: currentR, mid: currentM, temp: currentTemp, ...variables },
-      description, done, result: done ? [...array] : null,
+      variables: { ...state, ...extra }, description, done,
+      result: done ? [...array] : null,
     });
   }
 
@@ -39,42 +39,43 @@ export function generateBinaryInsertionSortSteps(input) {
   }
 
   for (let i = 1; i < array.length; i++) {
-    currentI = i;
-    let temp = array[i];
-    currentTemp = temp;
-    record('select', 'temp', `取出当前元素 ${temp}，准备在前面的有序序列中寻找插入位置。`, { i, temp });
-    
+    state.i = i;
+    state.temp = array[i];
     let left = 0, right = i - 1;
-    currentL = left; currentR = right;
-    record('init-bounds', 'init-bounds', `查找范围 [0, ${right}]。`, { i, left, right, temp });
+    state.left = left; state.right = right; state.mid = null; state.insertIndex = null;
+    
+    record('select', 'temp', `取出当前元素 ${state.temp}，准备查找插入位置。`);
+    record('init-bounds', 'init-bounds', `查找范围 [0, ${right}]。`);
 
     while (left <= right) {
       let mid = Math.floor((left + right) / 2);
-      currentM = mid; currentL = left; currentR = right;
-      record('compare', 'calc-mid', `取中间位置 mid = ${mid}，比较 A[${mid}] = ${array[mid]} 和 ${temp}。`, { i, left, right, mid, temp });
+      state.mid = mid; state.left = left; state.right = right;
+      record('compare', 'calc-mid', `取 mid = ${mid}，比较 A[${mid}] = ${array[mid]} 和 ${state.temp}。`);
       
-      if (array[mid] > temp) {
+      if (array[mid] > state.temp) {
         right = mid - 1;
-        currentR = right;
-        record('move-right', 'compare', `A[${mid}] > ${temp}，插入位置在左半区，更新 right = ${right}。`, { i, left, right, mid, temp });
+        state.right = right;
+        record('move-right', 'compare', `A[${mid}] > ${state.temp}，更新 right = ${right}。`);
       } else {
         left = mid + 1;
-        currentL = left;
-        record('move-left', 'else', `A[${mid}] <= ${temp}，插入位置在右半区，更新 left = ${left}。`, { i, left, right, mid, temp });
+        state.left = left;
+        record('move-left', 'else', `A[${mid}] <= ${state.temp}，更新 left = ${left}。`);
       }
     }
 
-    record('found-pos', 'while-end', `查找结束，插入位置为 ${left}。`, { i, left, temp });
+    state.mid = null; // 清空未计算的mid
+    record('found-pos', 'while-end', `查找结束，插入位置为 ${left}。`);
     
     for (let j = i - 1; j >= left; j--) {
       array[j + 1] = array[j];
-      record('move', 'move', `将元素 A[${j}] = ${array[j]} 向右移动一位。`, { i, left, j, temp });
+      record('move', 'move', `将元素 A[${j}] 向右移动一位。`, { j });
     }
     
-    array[left] = temp;
-    record('insert', 'insert', `将 ${temp} 插入到位置 ${left}。`, { i, left, temp });
+    array[left] = state.temp;
+    state.insertIndex = left;
+    record('insert', 'insert', `将 ${state.temp} 插入到位置 ${left}。`);
   }
 
-  record('sorted', 'done', '排序完成，数组已按从小到大排列。');
+  record('sorted', 'done', '排序完成。');
   return { steps, result: array, sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES };
 }
