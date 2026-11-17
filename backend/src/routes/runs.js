@@ -45,11 +45,7 @@ export function handleCreateRun(req, res, body) {
 
 export function handleCreateBubbleRun(res, body) {
   let input;
-  try {
-    input = JSON.parse(body);
-  } catch {
-    return sendError(res, 400, 'INVALID_INPUT', '请求体格式错误');
-  }
+  try { input = JSON.parse(body); } catch { return sendError(res, 400, 'INVALID_INPUT', '请求体格式错误'); }
   const array = input?.array;
   if (!Array.isArray(array) || array.length > 24 || !array.every(Number.isSafeInteger)) {
     return sendError(res, 400, 'INVALID_INPUT', '数组必须包含 0 到 24 个安全整数');
@@ -72,20 +68,14 @@ const sortGenerators = {
 
 export function handleCreateSortRun(res, body, algorithm) {
   let input;
-  try {
-    input = JSON.parse(body);
-  } catch {
-    return sendError(res, 400, 'INVALID_INPUT', '请求体格式错误');
-  }
+  try { input = JSON.parse(body); } catch { return sendError(res, 400, 'INVALID_INPUT', '请求体格式错误'); }
   const array = input?.array;
   if (!Array.isArray(array) || array.length > 24 || !array.every(Number.isSafeInteger)) {
     return sendError(res, 400, 'INVALID_INPUT', '数组必须包含 0 到 24 个安全整数');
   }
   
   const generator = sortGenerators[algorithm];
-  if (!generator) {
-    return sendError(res, 404, 'ALGORITHM_NOT_FOUND', '未找到该排序算法');
-  }
+  if (!generator) return sendError(res, 404, 'ALGORITHM_NOT_FOUND', '未找到该排序算法');
 
   const run = createRun({ algorithm, ...generator(array) });
   res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -128,11 +118,7 @@ export function handleCreateGraphRun(res, body, algorithm) {
   const config = graphAlgorithm(algorithm);
   const maxNodes = config.maxNodes ?? 30;
   let input;
-  try {
-    input = JSON.parse(body);
-  } catch {
-    return sendError(res, 400, 'INVALID_INPUT', '请求体格式错误');
-  }
+  try { input = JSON.parse(body); } catch { return sendError(res, 400, 'INVALID_INPUT', '请求体格式错误'); }
   if (input?.nodes?.length > maxNodes || input?.edges?.length > graphMaxEdges) {
     return sendError(res, 400, 'INVALID_INPUT', config.name + ' 最多支持 ' + maxNodes + ' 个顶点和 ' + graphMaxEdges + ' 条边。');
   }
@@ -146,9 +132,7 @@ export function handleCreateGraphRun(res, body, algorithm) {
     }
     const edges = validated.map(({ u, v, w }) => config.weighted ? [u, v, w] : [u, v]);
     graph = { nodes: input.nodes, edges, directed, ...(config.start ? { start: input.start } : {}) };
-  } catch (error) {
-    return sendError(res, 400, 'INVALID_INPUT', error.message);
-  }
+  } catch (error) { return sendError(res, 400, 'INVALID_INPUT', error.message); }
   const run = createRun({ algorithm, graph, ...graphGenerators[algorithm](graph) });
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(run));
@@ -156,22 +140,16 @@ export function handleCreateGraphRun(res, body, algorithm) {
 
 export function handleGetRun(req, res, runId) {
   const run = getRun(runId);
-  if (!run) {
-    return sendError(res, 404, 'RUN_NOT_FOUND', '未找到该 run');
-  }
+  if (!run) return sendError(res, 404, 'RUN_NOT_FOUND', '未找到该 run');
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(run));
 }
 
 export function handleGetStep(req, res, runId, stepIndex) {
   const run = getRun(runId);
-  if (!run) {
-    return sendError(res, 404, 'RUN_NOT_FOUND', '未找到该 run');
-  }
+  if (!run) return sendError(res, 404, 'RUN_NOT_FOUND', '未找到该 run');
   const index = parseInt(stepIndex, 10);
-  if (isNaN(index) || index < 0 || index >= run.steps.length) {
-    return sendError(res, 400, 'STEP_OUT_OF_RANGE', '步骤索引越界');
-  }
+  if (isNaN(index) || index < 0 || index >= run.steps.length) return sendError(res, 400, 'STEP_OUT_OF_RANGE', '步骤索引越界');
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ runId, step: run.steps[index] }));
 }
