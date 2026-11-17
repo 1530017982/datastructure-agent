@@ -12,13 +12,16 @@ const SYSTEM = `你是陪学生看懂算法的助教，像坐在旁边一起看�
 页面没有提供的信息不要假装看到了；超出当前页面时区分通用知识与本例状态。不确定时如实说明，不编造项目功能、教材出处或知识卡引用。这里没有检索知识库，不要声称已核验资料。
 保持对话自然，围绕学生的问题提供帮助，必要时简短引导回算法学习。`;
 
+const SORT_ALGORITHMS = ['bubble-sort', 'insertion-sort', 'binary-insertion-sort', 'shell-sort', 'selection-sort', 'quick-sort', 'heap-sort', 'merge-sort'];
+const isSortingAlgorithm = (algo) => SORT_ALGORITHMS.includes(algo);
+
 function snapshot(step) {
   if (!step) return null;
   if (graphAlgorithm(step.algorithm)) {
     return { stepNumber: step.stepIndex + 1, event: step.event, lineId: step.lineId,
       variables: step.variables, description: step.description, done: step.done, result: step.result };
   }
-  if (arraySearch(step.algorithm) || step.algorithm.endsWith('-sort')) {
+  if (arraySearch(step.algorithm) || isSortingAlgorithm(step.algorithm)) {
     return { stepNumber: step.stepIndex + 1, event: step.event, array: step.array,
       variables: step.variables, description: step.description };
   }
@@ -38,8 +41,7 @@ export function buildPrompt(run, step, level, question, history = []) {
   const code = { sourceVersion: run.sourceVersion, activeLineId,
     lines: displaySourceLines(run).map(line => ({ ...line, active: line.lineId === activeLineId })) };
   
-  // 适配所有排序算法
-  const isSorting = run.algorithm.endsWith('-sort');
+  const isSorting = isSortingAlgorithm(run.algorithm);
   const { pass, index, sortedFrom } = step.variables || {};
   const graph = graphAlgorithm(run.algorithm);
   const search = arraySearch(run.algorithm);
