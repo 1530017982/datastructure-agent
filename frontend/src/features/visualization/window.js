@@ -12,7 +12,6 @@ import { describeGraphStep } from './graph-explanation.js';
 import { buildGraphPreview } from './bfs-preview.js';
 import { buildPrototypeArrayFrame } from './prototype-array.js';
 
-
 const TEMPLATE = `
 <div class="win-bar">
   <span class="win-dot" aria-hidden="true"></span>
@@ -80,12 +79,16 @@ export function createVizWindow(host, {
   const root = document.createElement('section');
   root.className = 'win vizwin';
   root.dataset.win = 'viz';
-  const sorting = algorithm === 'bubble-sort';
+  
+  // 适配所有排序算法
+  const sorting = algorithm.endsWith('-sort');
   const custom = algorithm === 'custom-array';
   const graph = graphAlgorithm(algorithm);
   const search = arraySearch(algorithm);
   const useLegacy = !search && !graph && !sorting && !custom && new URLSearchParams(window.location.search).get('viz') === 'legacy';
+  
   root.innerHTML = TEMPLATE;
+  
   if (graph) {
     root.querySelector('.win-sub').textContent = graph.name + ' · 图视图';
     root.querySelector('.vh-title').textContent = '图结构';
@@ -94,6 +97,7 @@ export function createVizWindow(host, {
     root.querySelector('[data-viz-replay]').hidden = true;
     root.querySelector('.viewport-legend').hidden = true;
   }
+  
   if (search) {
     root.querySelector('.win-sub').textContent = search.title + ' · 数组视图';
     root.querySelector('.vh-sub').textContent = search.title;
@@ -101,13 +105,20 @@ export function createVizWindow(host, {
     legend.setAttribute('aria-label', '查找图例');
     legend.innerHTML = '<span><b class="legend-right">橙</b> 当前比较</span><span><b class="legend-mid">绿</b> 命中</span>';
   }
+  
   if (sorting) {
-    root.querySelector('.win-sub').textContent = '冒泡排序 · 数组视图';
-    root.querySelector('.vh-sub').textContent = '冒泡排序 · 升序';
+    const sortNames = {
+      'bubble-sort': '冒泡排序', 'insertion-sort': '直接插入排序', 'binary-insertion-sort': '折半插入排序', 'shell-sort': '希尔排序', 
+      'selection-sort': '简单选择排序', 'quick-sort': '快速排序', 'heap-sort': '堆排序', 'merge-sort': '归并排序'
+    };
+    const sortName = sortNames[algorithm] || '排序';
+    root.querySelector('.win-sub').textContent = `${sortName} · 数组视图`;
+    root.querySelector('.vh-sub').textContent = `${sortName} · 升序`;
     const legend = root.querySelector('.viewport-legend');
     legend.setAttribute('aria-label', '排序图例');
-    legend.innerHTML = '<span><b class="legend-mid">绿</b> 已就位</span><span><b class="legend-right">橙</b> 比较或交换</span>';
+    legend.innerHTML = '<span><b class="legend-mid">绿</b> 已就位/最终位置</span><span><b class="legend-right">橙</b> 比较/操作</span>';
   }
+  
   if (custom) {
     root.querySelector('.win-sub').textContent = '自定义代码 · 数组视图';
     root.querySelector('.vh-sub').textContent = '按实际执行记录播放';
@@ -233,7 +244,7 @@ export function createVizWindow(host, {
       root.style.width = '';
       root.style.height = '';
     }
-    if (on) { root.setAttribute('role','dialog'); root.setAttribute('aria-modal','true'); root.setAttribute('aria-label','二分查找可视化'); }
+    if (on) { root.setAttribute('role','dialog'); root.setAttribute('aria-modal','true'); root.setAttribute('aria-label', sorting ? '排序可视化' : '二分查找可视化'); }
     else { root.removeAttribute('role'); root.removeAttribute('aria-modal'); root.removeAttribute('aria-label'); }
     if (fullBtn) {
       fullBtn.textContent = on ? '退出全屏' : '全屏';
