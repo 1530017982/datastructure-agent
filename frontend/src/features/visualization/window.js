@@ -1,7 +1,5 @@
 /**
  * 成员03可视化窗口，从PR #14的dev-viz-window.js恢复并接入正式工作台。
- * 只读服务端run；时间轴与播放意图委托唯一createPlayback实例。
- * 提供白底画布、平移缩放、取景、窗口调整、全屏和逐步解释。
  */
 
 import { dAlgorithm } from '../workbench/d-algorithms.js';
@@ -18,6 +16,7 @@ import { describeGraphStep } from './graph-explanation.js';
 import { buildGraphPreview } from './bfs-preview.js';
 import { buildPrototypeArrayFrame } from './prototype-array.js';
 
+const SORT_ALGORITHMS = ['bubble-sort', 'insertion-sort', 'binary-insertion-sort', 'shell-sort', 'selection-sort', 'quick-sort', 'heap-sort', 'merge-sort'];
 
 const TEMPLATE = `
 <div class="win-bar">
@@ -89,7 +88,7 @@ export function createVizWindow(host, {
   const c = cAlgorithm(algorithm);
   const levelOrder=algorithm==='binary-tree-level-order';
   const unionFind = algorithm === 'union-find';
-  const sorting = algorithm === 'bubble-sort';
+  const sorting = SORT_ALGORITHMS.includes(algorithm);
   const custom = algorithm === 'custom-array';
   const graph = graphAlgorithm(algorithm);
   const search = arraySearch(algorithm);
@@ -124,6 +123,7 @@ export function createVizWindow(host, {
     root.querySelector('[data-viz-replay]').hidden = true;
     root.querySelector('.viewport-legend').hidden = true;
   }
+  
   if (search) {
     root.querySelector('.win-sub').textContent = search.title + ' · 数组视图';
     root.querySelector('.vh-sub').textContent = search.title;
@@ -131,13 +131,20 @@ export function createVizWindow(host, {
     legend.setAttribute('aria-label', '查找图例');
     legend.innerHTML = '<span><b class="legend-right">橙</b> 当前比较</span><span><b class="legend-mid">绿</b> 命中</span>';
   }
+  
   if (sorting) {
-    root.querySelector('.win-sub').textContent = '冒泡排序 · 数组视图';
-    root.querySelector('.vh-sub').textContent = '冒泡排序 · 升序';
+    const sortNames = {
+      'bubble-sort': '冒泡排序', 'insertion-sort': '直接插入排序', 'binary-insertion-sort': '折半插入排序', 'shell-sort': '希尔排序', 
+      'selection-sort': '简单选择排序', 'quick-sort': '快速排序', 'heap-sort': '堆排序', 'merge-sort': '归并排序'
+    };
+    const sortName = sortNames[algorithm] || '排序';
+    root.querySelector('.win-sub').textContent = `${sortName} · 数组视图`;
+    root.querySelector('.vh-sub').textContent = `${sortName} · 升序`;
     const legend = root.querySelector('.viewport-legend');
     legend.setAttribute('aria-label', '排序图例');
-    legend.innerHTML = '<span><b class="legend-mid">绿</b> 已就位</span><span><b class="legend-right">橙</b> 比较或交换</span>';
+    legend.innerHTML = '<span><b class="legend-mid">绿</b> 已就位/最终位置</span><span><b class="legend-right">橙</b> 比较/操作</span>';
   }
+  
   if (custom) {
     root.querySelector('.win-sub').textContent = '自定义代码 · 数组视图';
     root.querySelector('.vh-sub').textContent = '按实际执行记录播放';
@@ -147,7 +154,6 @@ export function createVizWindow(host, {
   }
   host.append(root);
 
-  // 防御：若上一个窗口异常销毁、body 上残留了全屏类，这里兜一次，保证"新窗口不是全屏"
   if (!document.querySelector('.vizwin[data-full="true"]')) {
     document.body.classList.remove('is-viz-full');
   }
@@ -179,7 +185,6 @@ export function createVizWindow(host, {
   let currentRun = run;
   let state = { stepIndex: 0, total: 0, playing: false, canPrev: false, canNext: false };
 
-  /* ---------------- 视口：平移 / 缩放 / 取景 ---------------- */
   function applyView() {
     scene.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.scale})`;
   }
@@ -251,14 +256,11 @@ export function createVizWindow(host, {
   $('[data-viz-view-reset]').addEventListener('click', fitView);
   $('[data-viz-replay]').addEventListener('click', () => viz?.playEnterAnimation());
 
-  /* 全屏：整个白底窗口铺满屏幕。
-     全屏会盖住顶栏与分区胶囊，所以标题栏留「退出全屏」，并且 Esc 也能退。 */
   const fullBtn = $('[data-viz-full]');
   let fitTimer = null;
 
   function setFull(on) {
     root.dataset.full = on ? 'true' : 'false';
-    // 全屏时页面里那层带 transform 的容器必须摘掉：祖先有 transform 时 position:fixed 会退化成相对定位
     document.body.classList.toggle('is-viz-full', on);
     if (on) {
       root.style.left = '';
@@ -266,7 +268,7 @@ export function createVizWindow(host, {
       root.style.width = '';
       root.style.height = '';
     }
-    if (on) { root.setAttribute('role','dialog'); root.setAttribute('aria-modal','true'); root.setAttribute('aria-label','二分查找可视化'); }
+    if (on) { root.setAttribute('role','dialog'); root.setAttribute('aria-modal','true'); root.setAttribute('aria-label', sorting ? '排序可视化' : '二分查找可视化'); }
     else { root.removeAttribute('role'); root.removeAttribute('aria-modal'); root.removeAttribute('aria-label'); }
     if (fullBtn) {
       fullBtn.textContent = on ? '退出全屏' : '全屏';
@@ -274,7 +276,6 @@ export function createVizWindow(host, {
       fullBtn.setAttribute('aria-pressed', String(on));
     }
     queueFit();
-    // 延迟取景必须自己管住：窗口被销毁后这个回调还会跑，所以存住句柄、destroy 时清掉
     if (fitTimer) clearTimeout(fitTimer);
     fitTimer = setTimeout(() => { fitTimer = null; fitView(); }, 260);
   }
@@ -293,7 +294,6 @@ export function createVizWindow(host, {
   };
   window.addEventListener('keydown', onEsc);
 
-  /* ---------------- 时间轴 ---------------- */
   function renderRuler(total) {
     ruler.setAttribute('aria-valuemin', '1');
     const count = Math.max(1, total);
@@ -364,8 +364,6 @@ export function createVizWindow(host, {
   }
   ruler.addEventListener('keydown', (event) => {
     if (!currentRun || !state.total) return;
-    // 时间轴自己处理左右/Home/End 之后必须阻止冒泡：
-    // 否则事件会继续冒到 document，宿主的全局快捷键再执行一次 next/prev，一次按键跳过两步（PR #14 复审问题 1）。
     if (event.key === 'ArrowLeft') { event.preventDefault(); event.stopPropagation(); onSeek?.(Math.max(0, state.stepIndex - 1)); return; }
     if (event.key === 'ArrowRight') { event.preventDefault(); event.stopPropagation(); onSeek?.(Math.min(state.total - 1, state.stepIndex + 1)); return; }
     if (event.key === 'Home') { event.preventDefault(); event.stopPropagation(); onSeek?.(0); return; }
@@ -381,7 +379,6 @@ export function createVizWindow(host, {
     else onTransport?.(action);
   });
 
-  /* ---------------- 对外 ---------------- */
   function bindRun(nextRun) {
     currentRun = nextRun;
     if (!nextRun) return;
@@ -472,7 +469,6 @@ export function createVizWindow(host, {
   }
   setStep(run?.steps[0] ?? null, {stepIndex:run ? 0 : -1,total:run?.steps.length ?? 0,canPrev:false,canNext:Boolean(run && run.steps.length > 1),playing:false});
 
-  // Native resizing and responsive layout share the same fitting path.
   const observer = new ResizeObserver(queueFit); observer.observe(body);
   const rulerObserver = new ResizeObserver(updateLabelDensity); rulerObserver.observe(ruler);
   const bar = $('.win-bar'); let drag = null;
@@ -501,8 +497,6 @@ export function createVizWindow(host, {
       if (fitFrame !== null) cancelAnimationFrame(fitFrame);
       window.removeEventListener('keydown', onHomeKey);
       window.removeEventListener('keydown', onEsc);
-      // 销毁前必须把"全屏"这个页面级状态收干净（PR #14 复审问题 2）：
-      // 否则换 run 重建窗口后 body 上仍留着 is-viz-full，panel/panels 的 transform 会被全屏 CSS 压住。
       if (root.dataset.full === 'true' || document.body.classList.contains('is-viz-full')) setFull(false);
       if (fitTimer) { clearTimeout(fitTimer); fitTimer = null; }
       viz?.destroy();

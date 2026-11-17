@@ -19,7 +19,13 @@ import { createWorkbenchUI } from './features/workbench/ui.js';
 
 const $ = id => document.getElementById(id);
 let selectedAlgorithm = 'binary-search';
-const isSorting = () => selectedAlgorithm === 'bubble-sort';
+
+const SORT_ALGORITHMS = [
+  'bubble-sort', 'insertion-sort', 'binary-insertion-sort', 'shell-sort', 
+  'selection-sort', 'quick-sort', 'heap-sort', 'merge-sort'
+];
+const isSorting = () => SORT_ALGORITHMS.includes(selectedAlgorithm);
+
 const selectedGraph = () => graphAlgorithm(selectedAlgorithm);
 const isUnionFind = () => selectedAlgorithm === 'union-find';
 const selectedC = () => dataAlgorithm(selectedAlgorithm);
@@ -76,7 +82,6 @@ const listeners = new Set();
 const sourceNodes = new Map();
 const agent = createAgentChat($('agent-panel'), {embedded:true,onBeforeSend:()=>playback?.pause()});
 
-// 07 may subscribe immediately on mount, including the current initial step.
 export function subscribeStep(listener) {
   listeners.add(listener); listener(currentContext);
   return () => listeners.delete(listener);
@@ -121,11 +126,12 @@ function clearRun({ keepRequest = false } = {}) {
   $('startBtn').disabled=false;$('startBtn').textContent=runButtonLabel();$('run-form').removeAttribute('aria-busy');
   publish(null);
 }
+
 function render(state) {
   if(!run || state.runId!==run.runId || !state.step)return;
   const step=state.step;
   viz.setStep(step, state);
-  const { left, right, mid, pass, index, sortedFrom, line, writes } = step.variables;
+  const v = step.variables;
   let values;
   if (isLevelOrder()) {
     const {currentNode,level,queue,order}=step.variables;
@@ -137,7 +143,7 @@ function render(state) {
     values = [currentOp ? currentOp[0] + '(' + currentOp.slice(1).join(', ') + ')' : '—', findPath?.join(' → ') ?? '—', setCount, step.done ? run.result.failedOps.length : '—'];
   } else if (run.graph) {
     values = selectedGraph().fields.map(([key]) => {
-      const value = step.variables[key];
+      const value = v[key];
       if (key === 'matrix') {
         const nodes = run.graph.nodes;
         return ['列顺序：' + nodes.join('、'), ...value.map((row, index) => nodes[index] + '：' + row)].join('\n');
@@ -153,18 +159,46 @@ function render(state) {
       return value ?? '—';
     });
   } else if (arraySearch(run.algorithm)) {
-    const { index, current, comparisons, blockIndex, blockMax } = step.variables;
+    const { index, current, comparisons, blockIndex, blockMax } = v;
     values = run.algorithm === 'block-search'
       ? [blockIndex ?? '—', blockMax ?? '—', index ?? '—', current ?? '—']
       : [index ?? '—', current ?? '—', step.target, comparisons];
-  } else if (run.algorithm === 'custom-array') values = [line, index ?? '—', index === null ? '—' : step.array[index], writes];
-  else if (run.algorithm === 'bubble-sort') values = [pass || '—', index ?? '—', index === null ? '—' : index + 1, step.array.length - sortedFrom];
-  else values = [left, right, mid ?? '未计算', mid === null ? '—' : step.array[mid]];
+  } else if (run.algorithm === 'custom-array') {
+    values = [v.line, v.index ?? '—', v.index === null ? '—' : step.array[v.index], v.writes];
+  } else if (SORT_ALGORITHMS.includes(run.algorithm)) {
+    if (run.algorithm === 'bubble-sort') {
+      values = [v.pass || '—', v.index ?? '—', v.index === null ? '—' : v.index + 1, step.array.length - v.sortedFrom];
+    } else if (run.algorithm === 'insertion-sort') {
+      values = [v.i ?? '—', v.j ?? '—', v.temp ?? '—', v.insertIndex ?? '—'];
+    } else if (run.algorithm === 'binary-insertion-sort') {
+      values = [v.i ?? '—', v.left ?? '—', v.right ?? '—', v.mid ?? '—'];
+    } else if (run.algorithm === 'shell-sort') {
+      values = [v.gap ?? '—', v.i ?? '—', v.j ?? '—', v.temp ?? '—'];
+    } else if (run.algorithm === 'selection-sort') {
+      values = [v.i ?? '—', v.j ?? '—', v.minIndex ?? '—', v.minIndex !== null ? step.array[v.minIndex] : '—'];
+    } else if (run.algorithm === 'quick-sort') {
+      values = [v.low ?? '—', v.high ?? '—', v.i ?? '—', v.j ?? '—'];
+    } else if (run.algorithm === 'heap-sort') {
+      values = [v.heapSize ?? '—', v.i ?? '—', v.largest ?? '—', v.l !== null ? `${v.l}/${v.r}` : '—'];
+    } else if (run.algorithm === 'merge-sort') {
+      values = [v.low ?? '—', v.high ?? '—', v.k ?? '—', v.temp?.length ?? 0];
+    } else {
+      values = ['—', '—', '—', '—'];
+    }
+  } else {
+    values = [v.left, v.right, v.mid ?? '未计算', v.mid === null ? '—' : step.array[v.mid]];
+  }
+
   variableIds.forEach((id, i) => { $(id).textContent = values[i]; });
   $('stepText').textContent=`第 ${state.stepIndex+1} 步 / 共 ${state.total} 步`;
-  $('step-description').textContent=structuredInput() ? step.description : describeStep(step);
+  $('step-description').textContent=(structuredInput() || SORT_ALGORITHMS.includes(run.algorithm)) ? step.description : describeStep(step);
   const activeId = displayLineId(run.algorithm, step.lineId);
-  for(const [lineId,node] of sourceNodes){const active=lineId===activeId;node.classList.toggle('active',active);if(active)node.setAttribute('aria-current','step');else node.removeAttribute('aria-current');}
+  for(const [lineId,node] of sourceNodes){
+    const active=lineId===activeId;
+    node.classList.toggle('active',active);
+    if(active)node.setAttribute('aria-current','step');
+    else node.removeAttribute('aria-current');
+  }
   if (run.algorithm === 'custom-array') {
     const list = $('code-lines');
     const activeLine = sourceNodes.get(step.lineId).getBoundingClientRect();
@@ -174,6 +208,7 @@ function render(state) {
   }
   publish({runId:run.runId,algorithm:run.algorithm,stepIndex:state.stepIndex,step,total:state.total,playing:state.playing,sourceVersion:run.sourceVersion});
 }
+
 async function start(event) {
   event.preventDefault();
   const structured = structuredInput();
@@ -220,6 +255,7 @@ async function start(event) {
   finally{if(ticket===generation){pending=null;$('startBtn').disabled=false;$('startBtn').textContent=runButtonLabel();$('run-form').removeAttribute('aria-busy');}}
 }
 $('run-form').addEventListener('submit',start);
+
 function configureAlgorithm() {
   const sorting = isSorting();
   const custom = isCustom();
@@ -238,10 +274,14 @@ function configureAlgorithm() {
   $('run-form').classList.toggle('bfs-input', Boolean(graph || uf || c || tree));
   $('code-panel').classList.toggle('graph-workspace', Boolean(graph || uf || c || tree));
   $('code-panel').classList.toggle('floyd-workspace', selectedAlgorithm === 'floyd');
+  const sortTitles = { 
+    'bubble-sort': '冒泡排序', 'insertion-sort': '直接插入排序', 'binary-insertion-sort': '折半插入排序', 'shell-sort': '希尔排序', 
+    'selection-sort': '简单选择排序', 'quick-sort': '快速排序', 'heap-sort': '堆排序', 'merge-sort': '归并排序' 
+  };
   $('workbench-footer-detail').textContent = tree ? '队列先进先出，左右孩子依次入队' : c ? '状态表与源码随真实步骤同步' : uf ? '每个元素的父节点指向自己时，它就是根' : graph ? '图结构和步骤来自本次运行' : '数组下标从 0 开始';
   $('visualization-panel').setAttribute('aria-label', tree ? '二叉树层序遍历状态表' : c ? c.title + ' 执行状态表' : uf ? '并查集执行状态表' : graph ? graph.name + ' 执行过程，可用左右方向键单步操作' : '数组动画，可用左右方向键单步操作');
-  $('workbench-heading').textContent = (tree ? '二叉树层序遍历' : c?.title ?? (uf ? '并查集' : graph?.title)) ?? search?.title ?? (custom ? '自定义代码' : sorting ? '冒泡排序' : '二分查找');
-  $('source-file').textContent = tree ? 'binary_tree_level_order.cpp' : c ? selectedAlgorithm.replaceAll('-', '_') + '.cpp' : uf ? 'union_find.cpp' : graph ? selectedAlgorithm.replace('-', '_') + '.cpp' : search?.file ?? (custom ? '用户源码' : sorting ? 'bubble_sort.cpp' : 'binary_search.cpp');
+  $('workbench-heading').textContent = (tree ? '二叉树层序遍历' : c?.title ?? (uf ? '并查集' : graph?.title)) ?? search?.title ?? (custom ? '自定义代码' : sorting ? sortTitles[selectedAlgorithm] : '二分查找');
+  $('source-file').textContent = tree ? 'binary_tree_level_order.cpp' : c ? selectedAlgorithm.replaceAll('-', '_') + '.cpp' : uf ? 'union_find.cpp' : graph ? selectedAlgorithm.replace('-', '_') + '.cpp' : search?.file ?? (custom ? '用户源码' : sorting ? selectedAlgorithm.replaceAll('-', '_') + '.cpp' : 'binary_search.cpp');
   $('array-label').textContent = selectedAlgorithm === 'block-search' ? '分块数组' : custom || search ? '输入数组' : sorting ? '待排序数组' : '有序数组';
   $('arrInput').value = '';
   $('arrInput').placeholder = search ? '例如：' + search.example : sorting || custom ? '例如：5, 1, 4, 2' : '例如：1, 3, 5, 7, 9';
@@ -250,11 +290,22 @@ function configureAlgorithm() {
   $('run-form').classList.toggle('sorting-input', sorting || custom);
   $('input-help').textContent = custom ? '本机 Windows 编译运行。最多 24 个 32 位整数，逗号分隔；留空为空数组。'
     : sorting ? '最多 24 个安全整数，逗号分隔；留空为空数组。允许负数和重复值。' : search?.help ?? binaryHelp;
-  const labels = tree ? ['当前节点','当前层号','队列（队首在左）','访问顺序'] : c ? c.fields.map(([, label]) => label) : uf ? ['当前操作', '查找路径', '集合数量', '失败操作数'] : graph ? graph.fields.map(([, label]) => label) : custom ? ['源码行', '写入下标', '写入值', '写入次数']
+  let labels = tree ? ['当前节点','当前层号','队列（队首在左）','访问顺序'] : c ? c.fields.map(([, label]) => label) : uf ? ['当前操作', '查找路径', '集合数量', '失败操作数'] : graph ? graph.fields.map(([, label]) => label) : custom ? ['源码行', '写入下标', '写入值', '写入次数']
     : selectedAlgorithm === 'block-search' ? ['当前块', '块最大值', '数组下标', '当前元素']
     : search ? ['当前下标', '当前元素', '目标值', '比较次数']
     : sorting ? ['轮次', 'i', 'i + 1', '已就位'] : ['left', 'right', 'mid', 'A[mid]'];
+  if (sorting) {
+    if (selectedAlgorithm === 'bubble-sort') labels = ['轮次', 'i', 'i + 1', '已就位'];
+    else if (selectedAlgorithm === 'insertion-sort') labels = ['外层 i', '内层 j', '暂存 temp', '插入位置'];
+    else if (selectedAlgorithm === 'binary-insertion-sort') labels = ['外层 i', 'left', 'right', 'mid'];
+    else if (selectedAlgorithm === 'shell-sort') labels = ['增量 gap', 'i', 'j', '暂存 temp'];
+    else if (selectedAlgorithm === 'selection-sort') labels = ['外层 i', '内层 j', '最小下标', '最小值'];
+    else if (selectedAlgorithm === 'quick-sort') labels = ['左边界', '右边界', '指针 i', '指针 j'];
+    else if (selectedAlgorithm === 'heap-sort') labels = ['堆大小', '当前节点 i', 'largest', 'l / r'];
+    else if (selectedAlgorithm === 'merge-sort') labels = ['左边界', '右边界', '临时 k', 'temp 长度'];
+  }
   variableIds.forEach((id, i) => { $(id).previousElementSibling.textContent = labels[i]; });
+  
   algorithmMenu.setSelected(selectedAlgorithm);
   ui.setAlgorithm(selectedAlgorithm);
   clearRun();
@@ -263,9 +314,7 @@ function configureAlgorithm() {
 }
 function updateGraphDraft() {
   if (pending) {
-    generation++;
-    pending.abort();
-    pending = null;
+    generation++; pending.abort(); pending = null;
     $('startBtn').disabled = false;
     $('startBtn').textContent = runButtonLabel();
     $('run-form').removeAttribute('aria-busy');
@@ -293,8 +342,7 @@ $('fillDemo').addEventListener('click', () => {
     return;
   }
   if (selectedGraph()) {
-    updateGraphDraft();
-    graphForm.fillDemo();
+    updateGraphDraft(); graphForm.fillDemo();
     message('示例顶点和边已填入，点「下一步」查看。');
     return;
   }

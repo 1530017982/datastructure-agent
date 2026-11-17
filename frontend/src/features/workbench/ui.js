@@ -2,7 +2,6 @@ import { dataAlgorithm as cAlgorithm } from './data-algorithms.js';
 import { arraySearch } from './array-search.js';
 import { graphAlgorithm } from './graph-algorithms.js';
 
-// Layout state never owns or changes the algorithm's playback cursor.
 export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
   const $ = id => document.getElementById(id);
   const lifetime = new AbortController();
@@ -19,7 +18,7 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
     nav.style.setProperty('--nav-active-height', item.height+'px');
     if (!nav.dataset.indicatorReady) {
       nav.dataset.indicatorReady = 'true';
-      nav.getBoundingClientRect(); // Place the initial highlight before enabling transitions.
+      nav.getBoundingClientRect();
       nav.classList.add('indicator-animated');
     }
   }
@@ -32,7 +31,6 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
     if (positionFrame !== null) return;
     positionFrame = requestAnimationFrame(() => {
       positionFrame = null;
-      // Leave every timeline step reachable even when its bar is near the screen bottom.
       const timeline = document.querySelector('.vizwin .timeline')?.getBoundingClientRect();
       const base = innerWidth <= 540 ? 14 : 24, right = innerWidth <= 540 ? 14 : 26;
       const x = innerWidth - right - ball.offsetWidth, y = innerHeight - base - ball.offsetHeight;
@@ -69,7 +67,6 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
         if (!response.ok) throw new Error('笔记读取失败');
         const html = await response.text();
         if (request.signal.aborted) return;
-        // This fragment is generated from the repository's Markdown during build.
         noteContent.innerHTML = html;
         renderedUnit = unit;
         noteContent.hidden = false;
@@ -108,7 +105,7 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
       query.set('unit', unit);
       if (section && /^[a-z0-9-]{1,50}$/.test(section)) query.set('section', section);
     }
-    if (name === 'workbench' && (['binary-search', 'bubble-sort', 'custom-array', 'union-find', 'binary-tree-level-order'].includes(requestedAlgorithm) || graphAlgorithm(requestedAlgorithm) || arraySearch(requestedAlgorithm) || cAlgorithm(requestedAlgorithm))) {
+    if (name === 'workbench' && (['insertion-sort', 'binary-insertion-sort', 'shell-sort', 'selection-sort', 'quick-sort', 'heap-sort', 'merge-sort', 'binary-search', 'bubble-sort', 'custom-array', 'union-find', 'binary-tree-level-order'].includes(requestedAlgorithm) || graphAlgorithm(requestedAlgorithm) || arraySearch(requestedAlgorithm) || cAlgorithm(requestedAlgorithm))) {
       query.set('algorithm', requestedAlgorithm);
     }
     const hash = '#' + name + (query.size ? '?' + query : '');
@@ -161,7 +158,6 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
   }
   listen(ball, 'click', () => { returnFocus = ball; show(!open); });
   listen($('tutor-close'), 'click', () => show(false));
-  // Dismiss without consuming the click or moving focus away from the outside control.
   listen(document, 'pointerdown', event => {
     if (open && !drag && !panel.contains(event.target) && !ball.contains(event.target)) show(false, false);
   });
@@ -205,10 +201,10 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
     end: '为什么有的顶点没有被访问？'
   };
   const sortingPrompts = {
-    init: '为什么从左向右比较相邻元素？',
+    init: '这步发生了什么？',
     compare: '这两个元素需要交换吗？',
-    swap: '这次交换把哪个值往右移了一格？',
-    'pass-end': '为什么这一轮最右边的元素已经就位？',
+    swap: '这次交换改变了什么？',
+    'pass-end': '为什么这一轮结束有元素就位？',
     sorted: '如果有两个相等的元素，它们的相对顺序会变吗？',
   };
   return {
@@ -239,7 +235,7 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
         return;
       }
       const activePrompts = algorithm === 'bfs' ? bfsPrompts
-        : algorithm === 'bubble-sort' ? sortingPrompts : prompts;
+        : algorithm.endsWith('-sort') ? sortingPrompts : prompts;
       if (algorithm !== 'bfs' && graphAlgorithm(algorithm)) {
         $('tutor-prompt').textContent = context?.step?.done ? '这次运行得到了什么结果？' : '这一步改变了哪些状态，为什么？';
         return;
