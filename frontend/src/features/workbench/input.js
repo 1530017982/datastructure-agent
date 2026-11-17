@@ -13,23 +13,37 @@ function parseArray(arrayText, limit) {
 }
 
 export function parseInput(arrayText, targetText, algorithm = 'binary-search') {
-  // 兼容所有排序算法（包括原有的 bubble-sort 和新增的 -sort 结尾算法）
-  if (algorithm.endsWith('-sort')) return { array: parseArray(arrayText, 24) };
+  // 显式列出所有排序算法，避免误伤其他带有 -sort 后缀的潜在非数组算法
+  const sortAlgorithms = [
+    'bubble-sort', 
+    'insertion-sort', 
+    'binary-insertion-sort', 
+    'shell-sort', 
+    'selection-sort', 
+    'quick-sort', 
+    'heap-sort', 
+    'merge-sort'
+  ];
+
+  if (sortAlgorithms.includes(algorithm)) return { array: parseArray(arrayText, 24) };
   
   if (algorithm === 'custom-array') {
     const array = parseArray(arrayText, 24);
     if (array.some(value => value < -2147483648 || value > 2147483647)) throw new Error('自定义代码使用 32 位整数。');
     return { array };
   }
+  
   const targetValue = targetText.trim();
   if (!targetValue) throw new Error('目标不能为空。');
   const target = integer(targetValue, '目标');
+  
   if (algorithm === 'block-search') {
     const blocks = arrayText.trim() ? arrayText.split(/[;；]/).map(block => parseArray(block, arraySearchMaxElements)) : [];
     if (blocks.length > 64) throw new Error('最多输入 64 个块。');
     if (blocks.reduce((size, block) => size + block.length, 0) > arraySearchMaxElements) throw new Error('所有块合计最多包含 100 个元素。');
     return { blocks, target };
   }
+  
   const array = parseArray(arrayText, arraySearchMaxElements);
   if (algorithm === 'linear-search') return { array, target };
   if (array.some((value,i) => i > 0 && value < array[i-1])) throw new Error('数组必须按非递减顺序排列，请勿自动排序或去重。');
@@ -39,6 +53,8 @@ export function parseInput(arrayText, targetText, algorithm = 'binary-search') {
 function validVariables(step, algorithm) {
   const variables = step.variables;
   if (!variables) return false;
+
+  // 1. D 包：查找算法
   if (arraySearch(algorithm)) {
     const { index, current, comparisons, ranges, blockIndex } = variables;
     return step.algorithm === algorithm && typeof step.description === 'string' && Number.isSafeInteger(step.target) &&
@@ -47,23 +63,52 @@ function validVariables(step, algorithm) {
       (algorithm !== 'block-search' || (Array.isArray(ranges) &&
         (blockIndex === null || (Number.isInteger(blockIndex) && blockIndex >= 0 && blockIndex < ranges.length))));
   }
+
+  // 2. B 包：图算法
   const graph = graphAlgorithm(algorithm);
   if (graph) {
     return step.algorithm === algorithm && typeof step.description === 'string' &&
       graph.fields.every(([key]) => Object.hasOwn(variables, key));
   }
+
+  // 3. 自定义代码
   if (algorithm === 'custom-array') {
     const { line, index, writes } = variables;
     return typeof step.description === 'string' && Number.isInteger(line) && line > 0 && String(line) === step.lineId &&
       Number.isInteger(writes) && writes >= 0 &&
       (index === null || (Number.isInteger(index) && index >= 0 && index < step.array.length));
   }
-  
-  // 兼容所有排序算法
-  if (algorithm.endsWith('-sort')) {
-    return typeof step.description === 'string';
+
+  // 4. 原有冒泡排序（恢复严格的字段校验）
+  if (algorithm === 'bubble-sort') {
+    const { index, pass, sortedFrom } = variables;
+    return step.algorithm === algorithm && typeof step.description === 'string' && Number.isInteger(pass) && pass >= 0 &&
+      Number.isInteger(sortedFrom) && sortedFrom >= 0 && sortedFrom <= step.array.length &&
+      (index === null || (Number.isInteger(index) && index >= 0 && index + 1 < step.array.length));
   }
-  
+
+  // 5. A 包：新增的 7 种比较排序（定制结构校验）
+  const sortRequiredFields = {
+    'insertion-sort': ['i', 'j', 'temp', 'insertIndex'],
+    'binary-insertion-sort': ['i', 'left', 'right', 'mid', 'temp', 'insertIndex'],
+    'shell-sort': ['gap', 'i', 'j', 'temp', 'insertIndex'],
+    'selection-sort': ['i', 'j', 'minIndex'],
+    'quick-sort': ['low', 'high', 'i', 'j', 'pivot'],
+    'heap-sort': ['heapSize', 'i', 'largest', 'l', 'r'],
+    'merge-sort': ['low', 'high', 'mid', 'i', 'j', 'k', 'p', 'temp']
+  };
+
+  if (Object.hasOwn(sortRequiredFields, algorithm)) {
+    if (step.algorithm !== algorithm || typeof step.description !== 'string') return false;
+    const req = sortRequiredFields[algorithm];
+    if (!req.every(k => Object.hasOwn(variables, k))) return false;
+    
+    // 对特殊字段做类型检查
+    if (algorithm === 'merge-sort' && !Array.isArray(variables.temp)) return false;
+    return true;
+  }
+
+  // 6. 兜底：二分查找
   return Number.isSafeInteger(variables.left) && Number.isSafeInteger(variables.right) &&
     (variables.mid === null || Number.isSafeInteger(variables.mid));
 }
