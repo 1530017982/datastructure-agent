@@ -3,6 +3,7 @@
 import { arraySearch } from '../workbench/array-search.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const SORT_ALGORITHMS = ['bubble-sort', 'insertion-sort', 'binary-insertion-sort', 'shell-sort', 'selection-sort', 'quick-sort', 'heap-sort', 'merge-sort'];
 
 function svgElement(name, attributes, text) {
   const node = document.createElementNS(SVG_NS, name);
@@ -29,6 +30,41 @@ function markerX(variables, key, center) {
   return center(index) + (overlap ? (key === 'left' ? -9 : 9) : 0);
 }
 
+// 根据算法和变量判断当前格子是否正在被操作/比较
+function isComparing(algorithm, variables, index, event) {
+  if (!variables) return false;
+  const v = variables;
+  switch (algorithm) {
+    case 'bubble-sort': return v.index !== null && (index === v.index || index === v.index + 1);
+    case 'selection-sort': return v.i === index || v.j === index || v.minIndex === index;
+    case 'insertion-sort': return v.i === index || v.j === index || (v.j !== null && v.j + 1 === index);
+    case 'binary-insertion-sort': return v.mid === index || v.left === index || v.right === index;
+    case 'quick-sort': return v.i === index || v.j === index || v.low === index || v.high === index;
+    case 'heap-sort': return v.i === index || v.largest === index;
+    case 'shell-sort': return v.j === index || (v.j !== null && v.j - v.gap === index);
+    case 'merge-sort':
+      // temp uses local offsets; only original-array positions belong on this chart.
+      if (index < v.low || index > v.high) return false;
+      if (event === 'pick') return v.readIndex === index;
+      if (event === 'copy') return Number.isInteger(v.p) && v.p > 0 && v.low + v.p - 1 === index;
+      return event === 'compare' && (v.i === index || v.j === index);
+    default: return false;
+  }
+}
+
+// 根据算法和变量判断当前格子是否已经排好序/在有序区内
+function isSorted(algorithm, variables, index) {
+  if (!variables) return false;
+  const v = variables;
+  switch (algorithm) {
+    case 'bubble-sort': return v.sortedFrom !== undefined && index >= v.sortedFrom;
+    case 'selection-sort': return v.i !== null && index < v.i;
+    case 'insertion-sort': return v.i !== null && index < v.i;
+    case 'heap-sort': return v.heapSize !== null && index >= v.heapSize;
+    default: return false;
+  }
+}
+
 export function buildPrototypeArrayFrame(step, { previous, enter, reduced }) {
   // Let the shared renderer handle both the no-run state and the empty array.
   if (!step?.array.length) return null;
@@ -37,7 +73,9 @@ export function buildPrototypeArrayFrame(step, { previous, enter, reduced }) {
   const { left, right } = variables;
   const search = arraySearch(step.algorithm);
   const ranges = step.algorithm === 'block-search' ? variables.ranges : [];
-  const sorting = step.algorithm === 'bubble-sort';
+  const sorting = SORT_ALGORITHMS.includes(step.algorithm);
+  const sortingFinished = sorting && (step.done || event === 'sorted');
+  const sortingActive = sorting && event !== 'init' && !sortingFinished;
   const custom = step.algorithm === 'custom-array';
   const adjacent = previous && Math.abs(previous.stepIndex - step.stepIndex) === 1;
   const swapIndex = !enter && adjacent
@@ -75,19 +113,20 @@ export function buildPrototypeArrayFrame(step, { previous, enter, reduced }) {
   array.forEach((value, index) => {
     const x = center(index);
     const y = yFor(value);
+    // 修复：sorting 为 true 时，!sorting 为 false，不会错误地把 left/right 当作排除区间
     const excluded = !sorting && !custom && (index < left || index > right);
     const cell = svgElement('g', { class: 'prototype-array-cell', 'data-index': index });
     if (excluded) cell.classList.add('is-excluded');
     const found = event === 'found' && index === result;
     if (search && !found && index === variables.index) cell.classList.add('is-comparing');
-    if (index === variables.mid) cell.classList.add('is-mid');
+    if ((!sorting || sortingActive) && index === variables.mid) cell.classList.add('is-mid');
     if (found) cell.classList.add('is-found');
     if (custom && event === 'write' && index === variables.index) cell.classList.add('is-comparing');
+    
+    // 修复：使用具体的映射逻辑来高亮排序状态
     if (sorting) {
-      if (index >= variables.sortedFrom) cell.classList.add('is-sorted');
-      if (variables.index !== null && (index === variables.index || index === variables.index + 1)) {
-        cell.classList.add('is-comparing');
-      }
+      if (sortingFinished || (sortingActive && isSorted(step.algorithm, variables, index))) cell.classList.add('is-sorted');
+      if (sortingActive && isComparing(step.algorithm, variables, index, event)) cell.classList.add('is-comparing');
     }
 
     const label = String(value);
@@ -143,6 +182,7 @@ export function buildPrototypeArrayFrame(step, { previous, enter, reduced }) {
   }
 
   for (const { key, label, y } of MARKERS) {
+    if (sorting && !sortingActive) continue;
     const x = markerX(variables, key, center);
     if (x === null) continue;
     const marker = svgElement('g', { class: `prototype-marker is-${key}`, 'data-ptr': key });

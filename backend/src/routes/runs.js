@@ -15,42 +15,27 @@ import { generateBfsSteps } from '../../../shared/algorithms/final/b/bfs.js';
 import { validateGraphInput } from '../../../shared/algorithms/final/b/validate-util.js';
 import { createRun, getRun } from '../runs/store.js';
 
+// --- A包新增导入 ---
+import { generateInsertionSortSteps } from '../../../shared/algorithms/final/a/insertion-sort.js';
+import { generateSelectionSortSteps } from '../../../shared/algorithms/final/a/selection-sort.js';
+import { generateQuickSortSteps } from '../../../shared/algorithms/final/a/quick-sort.js';
+import { generateMergeSortSteps } from '../../../shared/algorithms/final/a/merge-sort.js';
+import { generateBinaryInsertionSortSteps } from '../../../shared/algorithms/final/a/binary-insertion-sort.js';
+import { generateShellSortSteps } from '../../../shared/algorithms/final/a/shell-sort.js';
+import { generateHeapSortSteps } from '../../../shared/algorithms/final/a/heap-sort.js';
 
 export function handleCreateRun(req, res, body) {
   try {
-    // 修复8：限制请求体大小 (10KB)
-   
     const { array, target } = JSON.parse(body);
-
-    // 修复2：使用 Number.isSafeInteger 严格校验
-    if (!Array.isArray(array)) {
-      return sendError(res, 400, 'INVALID_INPUT', 'array 必须是数组');
-    }
-    if (!Number.isSafeInteger(target)) {
-      return sendError(res, 400, 'INVALID_INPUT', 'target 必须是安全整数');
-    }
-    if (array.length > 100) {
-      return sendError(res, 400, 'INVALID_INPUT', '数组长度不能超过 100');
-    }
-    
+    if (!Array.isArray(array)) return sendError(res, 400, 'INVALID_INPUT', 'array 必须是数组');
+    if (!Number.isSafeInteger(target)) return sendError(res, 400, 'INVALID_INPUT', 'target 必须是安全整数');
+    if (array.length > 100) return sendError(res, 400, 'INVALID_INPUT', '数组长度不能超过 100');
     for (let i = 0; i < array.length; i++) {
-      if (!Number.isSafeInteger(array[i])) {
-        return sendError(res, 400, 'INVALID_INPUT', '数组元素必须全是安全整数');
-      }
-      if (i > 0 && array[i] < array[i - 1]) {
-        return sendError(res, 400, 'INVALID_INPUT', '数组必须是有序的');
-      }
+      if (!Number.isSafeInteger(array[i])) return sendError(res, 400, 'INVALID_INPUT', '数组元素必须全是安全整数');
+      if (i > 0 && array[i] < array[i - 1]) return sendError(res, 400, 'INVALID_INPUT', '数组必须是有序的');
     }
-
     const algoResult = generateSteps(array, target);
-    const run = createRun({
-      algorithm: 'binary-search',
-      sourceVersion: algoResult.sourceVersion,
-      sourceLines: algoResult.sourceLines,
-      steps: algoResult.steps,
-      result: algoResult.result,
-    });
-
+    const run = createRun({ algorithm: 'binary-search', sourceVersion: algoResult.sourceVersion, sourceLines: algoResult.sourceLines, steps: algoResult.steps, result: algoResult.result });
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(run));
   } catch (e) {
@@ -60,11 +45,7 @@ export function handleCreateRun(req, res, body) {
 
 export function handleCreateBubbleRun(res, body) {
   let input;
-  try {
-    input = JSON.parse(body);
-  } catch {
-    return sendError(res, 400, 'INVALID_INPUT', '请求体格式错误');
-  }
+  try { input = JSON.parse(body); } catch { return sendError(res, 400, 'INVALID_INPUT', '请求体格式错误'); }
   const array = input?.array;
   if (!Array.isArray(array) || array.length > 24 || !array.every(Number.isSafeInteger)) {
     return sendError(res, 400, 'INVALID_INPUT', '数组必须包含 0 到 24 个安全整数');
@@ -73,6 +54,34 @@ export function handleCreateBubbleRun(res, body) {
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(run));
 }
+
+// --- A包新增：通用排序处理路由 ---
+const sortGenerators = {
+  'insertion-sort': generateInsertionSortSteps,
+  'selection-sort': generateSelectionSortSteps,
+  'quick-sort': generateQuickSortSteps,
+  'merge-sort': generateMergeSortSteps,
+  'binary-insertion-sort': generateBinaryInsertionSortSteps,
+  'shell-sort': generateShellSortSteps,
+  'heap-sort': generateHeapSortSteps,
+};
+
+export function handleCreateSortRun(res, body, algorithm) {
+  let input;
+  try { input = JSON.parse(body); } catch { return sendError(res, 400, 'INVALID_INPUT', '请求体格式错误'); }
+  const array = input?.array;
+  if (!Array.isArray(array) || array.length > 24 || !array.every(Number.isSafeInteger)) {
+    return sendError(res, 400, 'INVALID_INPUT', '数组必须包含 0 到 24 个安全整数');
+  }
+  
+  const generator = sortGenerators[algorithm];
+  if (!generator) return sendError(res, 404, 'ALGORITHM_NOT_FOUND', '未找到该排序算法');
+
+  const run = createRun({ algorithm, ...generator(array) });
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(run));
+}
+
 export function handleCreateArraySearchRun(res, body, algorithm) {
   let result;
   try {
@@ -109,11 +118,7 @@ export function handleCreateGraphRun(res, body, algorithm) {
   const config = graphAlgorithm(algorithm);
   const maxNodes = config.maxNodes ?? 30;
   let input;
-  try {
-    input = JSON.parse(body);
-  } catch {
-    return sendError(res, 400, 'INVALID_INPUT', '请求体格式错误');
-  }
+  try { input = JSON.parse(body); } catch { return sendError(res, 400, 'INVALID_INPUT', '请求体格式错误'); }
   if (input?.nodes?.length > maxNodes || input?.edges?.length > graphMaxEdges) {
     return sendError(res, 400, 'INVALID_INPUT', config.name + ' 最多支持 ' + maxNodes + ' 个顶点和 ' + graphMaxEdges + ' 条边。');
   }
@@ -127,40 +132,28 @@ export function handleCreateGraphRun(res, body, algorithm) {
     }
     const edges = validated.map(({ u, v, w }) => config.weighted ? [u, v, w] : [u, v]);
     graph = { nodes: input.nodes, edges, directed, ...(config.start ? { start: input.start } : {}) };
-  } catch (error) {
-    return sendError(res, 400, 'INVALID_INPUT', error.message);
-  }
+  } catch (error) { return sendError(res, 400, 'INVALID_INPUT', error.message); }
   const run = createRun({ algorithm, graph, ...graphGenerators[algorithm](graph) });
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(run));
 }
 
-
 export function handleGetRun(req, res, runId) {
   const run = getRun(runId);
-  if (!run) {
-    return sendError(res, 404, 'RUN_NOT_FOUND', '未找到该 run');
-  }
+  if (!run) return sendError(res, 404, 'RUN_NOT_FOUND', '未找到该 run');
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(run));
 }
 
 export function handleGetStep(req, res, runId, stepIndex) {
   const run = getRun(runId);
-  if (!run) {
-    return sendError(res, 404, 'RUN_NOT_FOUND', '未找到该 run');
-  }
-  
+  if (!run) return sendError(res, 404, 'RUN_NOT_FOUND', '未找到该 run');
   const index = parseInt(stepIndex, 10);
-  if (isNaN(index) || index < 0 || index >= run.steps.length) {
-    return sendError(res, 400, 'STEP_OUT_OF_RANGE', '步骤索引越界');
-  }
-
+  if (isNaN(index) || index < 0 || index >= run.steps.length) return sendError(res, 400, 'STEP_OUT_OF_RANGE', '步骤索引越界');
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ runId, step: run.steps[index] }));
 }
 
-// 统一错误格式
 function sendError(res, status, code, message) {
   res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: { code, message } }));
