@@ -44,7 +44,6 @@ function isIntOrNull(v) { return v === null || Number.isInteger(v); }
 function validateSortVariables(step, algorithm) {
   const v = step.variables;
   const len = step.array.length;
-  // 关键修复：如果是 init、sorted 事件，或者数组为空，放宽边界检查
   const isInit = step.event === 'init' || step.event === 'sorted' || len === 0;
 
   if (algorithm === 'insertion-sort') {
@@ -55,7 +54,7 @@ function validateSortVariables(step, algorithm) {
   }
   if (algorithm === 'shell-sort') {
     if (!isIntOrNull(v.gap) || !isIntOrNull(v.i) || !isIntOrNull(v.j) || !isIntOrNull(v.temp) || !isIntOrNull(v.insertIndex)) return false;
-    if (!isInit && v.gap !== null && v.gap <= 0) return false; // 初始化允许 gap=0
+    if (!isInit && v.gap !== null && v.gap <= 0) return false; 
     return true;
   }
   if (algorithm === 'selection-sort') {
@@ -72,8 +71,8 @@ function validateSortVariables(step, algorithm) {
   if (algorithm === 'heap-sort') {
     if (!isIntOrNull(v.heapSize) || !isIntOrNull(v.i) || !isIntOrNull(v.largest) || !isIntOrNull(v.l) || !isIntOrNull(v.r)) return false;
     if (!isInit && v.heapSize !== null && (v.heapSize < 0 || v.heapSize > len)) return false;
-    // 修复外层循环变量 i 越界问题
-    if (!isInit && v.i !== null && v.heapSize !== null && (v.i < 0 || v.i >= v.heapSize)) return false;
+    // 【修复】移除了 v.i >= v.heapSize 的强校验，因为提取阶段外层 i 可能等于 heapSize
+    if (!isInit && v.i !== null && (v.i < 0 || v.i >= len)) return false;
     return true;
   }
   if (algorithm === 'merge-sort') {
