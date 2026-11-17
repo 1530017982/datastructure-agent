@@ -1,7 +1,6 @@
 import { arraySearch } from './array-search.js';
 import { graphAlgorithm } from './graph-algorithms.js';
 
-// Layout state never owns or changes the algorithm's playback cursor.
 export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
   const $ = id => document.getElementById(id);
   const lifetime = new AbortController();
@@ -18,7 +17,7 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
     nav.style.setProperty('--nav-active-height', item.height+'px');
     if (!nav.dataset.indicatorReady) {
       nav.dataset.indicatorReady = 'true';
-      nav.getBoundingClientRect(); // Place the initial highlight before enabling transitions.
+      nav.getBoundingClientRect();
       nav.classList.add('indicator-animated');
     }
   }
@@ -31,7 +30,6 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
     if (positionFrame !== null) return;
     positionFrame = requestAnimationFrame(() => {
       positionFrame = null;
-      // Leave every timeline step reachable even when its bar is near the screen bottom.
       const timeline = document.querySelector('.vizwin .timeline')?.getBoundingClientRect();
       const base = innerWidth <= 540 ? 14 : 24, right = innerWidth <= 540 ? 14 : 26;
       const x = innerWidth - right - ball.offsetWidth, y = innerHeight - base - ball.offsetHeight;
@@ -68,7 +66,6 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
         if (!response.ok) throw new Error('笔记读取失败');
         const html = await response.text();
         if (request.signal.aborted) return;
-        // This fragment is generated from the repository's Markdown during build.
         noteContent.innerHTML = html;
         renderedUnit = unit;
         noteContent.hidden = false;
@@ -160,7 +157,6 @@ export function createWorkbenchUI({ onNavigate = () => {} } = {}) {
   }
   listen(ball, 'click', () => { returnFocus = ball; show(!open); });
   listen($('tutor-close'), 'click', () => show(false));
-  // Dismiss without consuming the click or moving focus away from the outside control.
   listen(document, 'pointerdown', event => {
     if (open && !drag && !panel.contains(event.target) && !ball.contains(event.target)) show(false, false);
   });

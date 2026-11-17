@@ -39,12 +39,10 @@ export function parseInput(arrayText, targetText, algorithm = 'binary-search') {
   return { array, target };
 }
 
-// --- 辅助校验函数 ---
 function isIntOrNull(v) { return v === null || Number.isInteger(v); }
 
 function validateSortVariables(step, algorithm) {
   const v = step.variables;
-  const isDone = step.done;
   const len = step.array.length;
 
   if (algorithm === 'insertion-sort') {
@@ -76,11 +74,9 @@ function validateSortVariables(step, algorithm) {
   if (algorithm === 'merge-sort') {
     if (!isIntOrNull(v.low) || !isIntOrNull(v.high) || !isIntOrNull(v.mid) || !isIntOrNull(v.i) || !isIntOrNull(v.j) || !isIntOrNull(v.k) || !isIntOrNull(v.p)) return false;
     if (!Array.isArray(v.temp) || !v.temp.every(Number.isInteger)) return false;
-    // 检查区间边界
     if (v.low !== null && (v.low < 0 || v.low >= len)) return false;
     if (v.high !== null && (v.high < 0 || v.high >= len)) return false;
     if (v.mid !== null && (v.mid < v.low || v.mid >= v.high)) return false;
-    // 检查 temp 长度与 k 的关系
     if (v.k !== null && v.temp.length !== v.k) return false;
     return true;
   }
@@ -120,7 +116,6 @@ function validVariables(step, algorithm) {
       (index === null || (Number.isInteger(index) && index >= 0 && index + 1 < step.array.length));
   }
 
-  // A 包排序算法严格校验
   const sortAlgorithms = ['insertion-sort', 'binary-insertion-sort', 'shell-sort', 'selection-sort', 'quick-sort', 'heap-sort', 'merge-sort'];
   if (sortAlgorithms.includes(algorithm)) {
     if (step.algorithm !== algorithm || typeof step.description !== 'string') return false;

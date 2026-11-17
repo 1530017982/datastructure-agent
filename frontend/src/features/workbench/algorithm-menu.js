@@ -3,7 +3,6 @@ import { graphAlgorithm, graphAlgorithmIds } from './graph-algorithms.js';
 const chapters = [
   ['第六章 · 图', graphAlgorithmIds.map(id => [id, graphAlgorithm(id).title])],
   ['第七章 · 查找', [['binary-search', '二分查找'], ['linear-search', '顺序查找'], ['block-search', '分块查找']]],
-  // --- A包修改：补全所有比较排序算法 ---
   ['第八章 · 排序', [
     ['bubble-sort', '冒泡排序'],
     ['insertion-sort', '直接插入排序'],
@@ -27,10 +26,7 @@ export function createAlgorithmMenu(root, onSelect) {
   let activeChapter = null;
   let hoverTimer;
 
-  function cancelHover() {
-    clearTimeout(hoverTimer);
-  }
-
+  function cancelHover() { clearTimeout(hoverTimer); }
   function showChapter(chapter) {
     cancelHover();
     if (activeChapter) {
@@ -43,13 +39,11 @@ export function createAlgorithmMenu(root, onSelect) {
       chapter.submenu.hidden = false;
     }
   }
-
   function setOpen(open) {
     trigger.setAttribute('aria-expanded', String(open));
     list.hidden = !open;
     if (!open) showChapter(null);
   }
-
   function close() {
     setOpen(false);
     if (root.contains(document.activeElement)) trigger.focus({ preventScroll: true });
@@ -111,9 +105,7 @@ export function createAlgorithmMenu(root, onSelect) {
     }
   }
 
-  trigger.addEventListener('pointerenter', event => {
-    if (event.pointerType === 'mouse') setOpen(true);
-  }, options);
+  trigger.addEventListener('pointerenter', event => { if (event.pointerType === 'mouse') setOpen(true); }, options);
   trigger.addEventListener('click', () => {
     if (list.hidden) setOpen(true);
     else if (document.activeElement === trigger) list.querySelector('button').focus();
@@ -124,9 +116,7 @@ export function createAlgorithmMenu(root, onSelect) {
     setOpen(true);
     list.querySelector('button').focus();
   }, options);
-  root.addEventListener('pointerleave', event => {
-    if (event.pointerType === 'mouse') close();
-  }, options);
+  root.addEventListener('pointerleave', event => { if (event.pointerType === 'mouse') close(); }, options);
   root.addEventListener('keydown', event => {
     if (event.key !== 'Escape' || list.hidden) return;
     event.preventDefault();
@@ -136,9 +126,7 @@ export function createAlgorithmMenu(root, onSelect) {
   root.addEventListener('focusout', event => {
     if (event.relatedTarget && !root.contains(event.relatedTarget)) setOpen(false);
   }, options);
-  document.addEventListener('pointerdown', event => {
-    if (!root.contains(event.target)) setOpen(false);
-  }, options);
+  document.addEventListener('pointerdown', event => { if (!root.contains(event.target)) setOpen(false); }, options);
 
   return {
     setSelected(id) {
@@ -152,9 +140,6 @@ export function createAlgorithmMenu(root, onSelect) {
       }
       setOpen(false);
     },
-    destroy() {
-      cancelHover();
-      controller.abort();
-    }
+    destroy() { cancelHover(); controller.abort(); }
   };
 }
