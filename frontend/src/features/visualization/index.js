@@ -1,5 +1,6 @@
 import { arraySearch } from '../workbench/array-search.js';
 import { createExplanationPanel } from './explanation-panel.js';
+
 /**
  * 成员03 · 数组动画渲染（主责路径 frontend/src/features/visualization/）
  *
@@ -67,7 +68,10 @@ export function describeStep(step) {
     const position = index === null ? '' : ' ｜ A[' + index + '] = ' + step.array[index];
     return '第 ' + (step.stepIndex + 1) + ' 步 ｜ 目标 ' + step.target + position + ' ｜ 已比较 ' + comparisons + ' 次';
   }
-  if (step.algorithm === 'bubble-sort' || step.algorithm === 'custom-array') return `第 ${step.stepIndex + 1} 步：${step.description}`;
+  // 适配所有排序算法
+  if (step.algorithm.endsWith('-sort') || step.algorithm === 'custom-array') {
+    return `第 ${step.stepIndex + 1} 步：${step.description}`;
+  }
   const { array = [], target, variables = {}, event, done, result } = step;
   const { left, right, mid } = variables;
   const parts = [`第 ${step.stepIndex + 1} 步：${EVENT_TEXT[event] ?? event}`];
@@ -96,7 +100,9 @@ export function describeStep(step) {
 export function describeTransition(previous, current) {
   if (!current) return '';
   if (arraySearch(current.algorithm)) return current.description;
-  if (current.algorithm === 'bubble-sort' || current.algorithm === 'custom-array') return current.description;
+  // 适配所有排序算法
+  if (current.algorithm.endsWith('-sort') || current.algorithm === 'custom-array') return current.description;
+  
   const { array = [], target, variables = {}, event, result } = current;
   const { left, right, mid } = variables;
   const last = array.length - 1;
