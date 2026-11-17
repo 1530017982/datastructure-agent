@@ -1,4 +1,4 @@
-const SOURCE_VERSION = 'heap-c-v2';
+const SOURCE_VERSION = 'heap-c-v3';
 const SOURCE_LINES = [
   { lineId: 'init', text: 'void heap_sort(long long a[], int n) {' },
   { lineId: 'build-heap', text: '  for (int i = n / 2 - 1; i >= 0; --i)' },
@@ -66,7 +66,11 @@ export function generateHeapSortSteps(input) {
   if (array.length <= 1) { record('sorted', 'done', '数组有序。'); return { steps, result: array, sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES }; }
 
   let n = array.length;
-  record('build-start', 'build-heap', `开始建堆。`);
+  
+  // 【修复】为 build-start 显式提供合法的初始状态，避免 heapSize=0, i=0 被校验拦截
+  state = { heapSize: n, i: Math.floor(n / 2) - 1, largest: null, l: null, r: null };
+  record('build-start', 'build-heap', `从最后一个非叶子节点开始建堆。`);
+  
   for (let i = Math.floor(n / 2) - 1; i >= 0; i--) {
     state = { heapSize: n, i: i, largest: null, l: null, r: null };
     record('heapify-call', 'heapify-call-1', `调整以 ${i} 为根的子树。`);
@@ -75,10 +79,12 @@ export function generateHeapSortSteps(input) {
 
   record('extract-start', 'extract-loop', `提取最大值。`);
   for (let i = n - 1; i > 0; i--) {
+    // 【修复】这里 i 代表外层末尾下标，heapSize 也是 i。这是合法的边界状态。
     state = { heapSize: i, i: i, largest: null, l: null, r: null };
     record('swap-root', 'swap-root', `堆顶 A[0] 与末尾 A[${i}] 交换。`);
     const temp = array[0]; array[0] = array[i]; array[i] = temp;
     record('swap', 'swap-root', `交换完成。`);
+    
     record('heapify-call', 'heapify-call-2', `对前 ${i} 个元素重新调整。`);
     heapify(i, 0);
   }
