@@ -1,0 +1,101 @@
+import { selectWorkbenchAlgorithm } from './select-workbench-algorithm.mjs';
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const { chromium } = await import(process.env.TEST_PLAYWRIGHT_MODULE
+  ? pathToFileURL(process.env.TEST_PLAYWRIGHT_MODULE).href : 'playwright');
+const server = spawn(process.execPath, ['backend/src/server.js'], {
+  cwd: fileURLToPath(new URL('../', import.meta.url)),
+  env: { ...process.env, PORT: '0', HOST: '127.0.0.1', AGENT_MOCK: 'true', RATE_LIMIT: 'false' },
+  windowsHide: true
+});
+let browser;
+try {
+  const base = await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Backend startup timed out')), 10000);
+    server.once('error', reject);
+    server.stdout.on('data', chunk => {
+      const match = String(chunk).match(/http:\/\/127\.0\.0\.1:\d+/);
+      if (match) { clearTimeout(timer); resolve(match[0]); }
+    });
+  });
+  browser = await chromium.launch({ channel: process.env.TEST_BROWSER_CHANNEL || 'msedge', headless: true });
+  const page = await browser.newPage();
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto(base + '/#workbench?algorithm=optimal-merge-tree');
+  const ids=['optimal-merge-tree','multiway-merge','replacement-selection','b-tree','b-plus-tree'];
+  for (const algorithm of ids) {
+    await selectWorkbenchAlgorithm(page,algorithm);
+    await page.click('#fillDemo');
+    const tree=['b-tree','b-plus-tree'].includes(algorithm);
+    if (tree) {
+      await page.click('#c-next');
+      await page.click('#c-back');
+      await page.click('#c-next');
+      assert.equal(await page.inputValue('#c-queries'), algorithm==='b-tree' ? '6, 7' : '30, 35');
+    }
+    const inputBeforeRun=await page.inputValue('#c-data');
+    const pending=page.waitForResponse(response=>response.url().endsWith('/api/algorithms/'+algorithm+'/runs'));
+    await page.click('#startBtn');
+    const response=await pending;
+    assert.equal(response.status(),200,algorithm);
+    const run=await response.json();
+    if(algorithm==='optimal-merge-tree') assert.equal(run.result.cost,17);
+    if(algorithm==='multiway-merge') assert.deepEqual(run.result,[0,1,2,3,4,5]);
+    if(algorithm==='replacement-selection') assert.deepEqual(run.result,[[4,5],[1,2,6]]);
+    if(tree) assert.deepEqual(run.result.queries.map(query=>query.found),[true,false]);
+    await page.locator('#c-edit').waitFor();
+    assert.equal(await page.locator('#c-fields').isHidden(),true);
+    await page.click('#nextBtn');
+    assert.equal(await page.locator('#code-lines .active').count(),1);
+    await page.click('[data-t="last"]');
+    assert.match(await page.locator('[data-explain-host]').innerText(),/运行结束/);
+    const tableText=await page.locator('.c-state-tables').innerText();
+    assert.doesNotMatch(tableText,/undefined|NaN/);
+    if(tree) assert.match(tableText,/查询结果.*查询键/s);
+    await page.click('#prevBtn');
+    assert.equal(await page.locator('#code-lines .active').count(),1);
+    const answer=await page.request.post(base+'/api/agent/explain',{
+      data:{runId:run.runId,stepIndex:1,question:'解释本步',hintLevel:2}
+    });
+    assert.equal(answer.status(),200);
+    assert.deepEqual((await answer.json()).stepRefs[0].variables,run.steps[1].variables);
+    await page.click('#c-edit');
+    assert.equal(await page.inputValue('#c-data'), inputBeforeRun);
+  }
+  await selectWorkbenchAlgorithm(page,'multiway-merge');
+  await page.fill('#c-data','3, 1\n2, 4');
+  await page.click('#startBtn');
+  assert.match(await page.locator('#msgBox').innerText(),/非递减/);
+  const cases=[
+    ['optimal-merge-tree',{weights:[]},result=>assert.equal(result.cost,0)],
+    ['multiway-merge',{runs:[[],[1]],k:2},result=>assert.deepEqual(result,[1])],
+    ['replacement-selection',{array:[],capacity:1},result=>assert.deepEqual(result,[])],
+    ['b-tree',{keys:[],queries:[7],t:2},result=>assert.equal(result.queries[0].found,false)],
+    ['b-plus-tree',{keys:[],queries:[]},result=>assert.equal(result.root,null)]
+  ];
+  for(const [algorithm,input,check] of cases) {
+    const response=await page.request.post(base+'/api/algorithms/'+algorithm+'/runs',{data:input});
+    assert.equal(response.status(),200);
+    check((await response.json()).result);
+  }
+  await selectWorkbenchAlgorithm(page,'b-tree');
+  await page.click('#fillDemo');
+  await page.click('#c-next');
+  await page.fill('#c-queries','');
+  const buildPending=page.waitForResponse(response=>response.url().endsWith('/api/algorithms/b-tree/runs'));
+  await page.click('#startBtn');
+  assert.deepEqual((await (await buildPending).json()).result.queries,[]);
+  await page.locator('#c-edit').waitFor();
+  await selectWorkbenchAlgorithm(page,'binary-search');
+  await page.click('#fillDemo');
+  await page.click('#startBtn');
+  await page.locator('#code-lines [data-line-id="init-left"].active').waitFor();
+  assert.deepEqual(errors,[]);
+  console.log('C package workbench acceptance passed.');
+} finally {
+  await browser?.close();
+  server.kill();
+}

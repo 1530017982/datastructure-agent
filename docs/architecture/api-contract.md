@@ -11,6 +11,10 @@
 | POST /api/algorithms/linear-search/runs | 200，创建并返回顺序查找 run | 01 |
 | POST /api/algorithms/block-search/runs | 200，创建并返回分块查找 run | 01 |
 | POST /api/algorithms/bubble-sort/runs | 200，创建并返回冒泡排序 run | 01 |
+| POST /api/algorithms/{D包树或哈希算法}/runs | 200，创建树或哈希运行 | 01 |
+| POST /api/algorithms/{C包算法}/runs | 200，创建归并或多路查找树运行 | 01 |
+| POST /api/algorithms/binary-tree-level-order/runs | 200，创建二叉树层序遍历运行 | 01 |
+| POST /api/algorithms/union-find/runs | 200，创建并查集运行 | 01 |
 | POST /api/algorithms/{图算法}/runs | 200，创建并返回图算法 run | 01 |
 | POST /api/algorithms/custom-array/runs | 本机 Windows，编译并执行自定义数组代码，200 返回实际执行 run | 01 |
 | GET /api/runs/:runId | 200，返回同一完整 run | 04 |
@@ -46,6 +50,14 @@ stepIndex 使用十进制非负整数字符串；超出已存在 run 的步骤�
 冒泡排序使用 `{"array":[5,1,4,2]}` 创建运行。接受 0 到 24 个安全整数，允许乱序、负数和重复值。它共用运行和步骤查询接口，`algorithm` 为 `bubble-sort`，`sourceVersion` 为 `bubble-c-v1`，最终 `result` 为升序数组。每一步保存当前 `array`、说明 `description` 和 `variables: {pass, index, sortedFrom}`。其中 `index` 是相邻比较的左下标，无比较时为 `null`，`sortedFrom` 起为已就位区间。事件为 `init`、`compare`、`swap`、`pass-end`、`sorted`。步骤问答使用当前和上一步的数组，回复的 `stepRefs` 包含 `algorithm`、`array` 和排序变量。冒泡排序题可独立作答，和二分查找共用判分接口与本机记录。
 
 顺序查找接受 `{array, target}`，允许无序、重复和空数组，命中时返回第一个匹配下标。分块查找接受 `{blocks, target}`，最多 64 块，跳过空块；非空块之间须满足前块最大值不大于后块最小值。两者的工作台与 API 均最多接受 100 个安全整数元素，未命中返回 -1。分块查找结果使用展开数组的零基下标。分块步骤保留最大值索引和块边界，两个接口均复用步骤查询与「问一步」。
+
+D 包新增 `avl-tree`、`red-black-tree`、`hash-linear-probing`、`hash-quadratic-probing`、`hash-double-hashing` 和 `hash-chaining`。树请求为 `{keys,target?}`，三种探测为 `{keys,capacity,target?}`，拉链法为 `{keys,bucketCount,target?}`。沿用已有 D 包实现及限制，最多 64 个插入键，容量／桶数 1～1024。平方探测容量须为奇素数，双散列容量须为不小于 2 的素数。工作台先展示槽位、桶链和节点状态表，支持建表／建树后查询一个键，留空查询则只执行插入。运行保留输入快照 `input`，与现有接口共用步骤查询及问答。
+
+C 包运行标识为 `optimal-merge-tree`、`multiway-merge`、`replacement-selection`、`b-tree`、`b-plus-tree`。请求分别为 `{weights}`、`{runs,k}`、`{array,capacity}`、`{keys,queries,t}`、`{keys,queries}`。沿用 C 包现有上限及校验，见 [C 包接口](../../shared/algorithms/final/c/README.md)。运行保存输入快照 `input`，共用运行查询、步骤查询和问答接口。主工作台先展示状态表，树结构由引擎自动构建，动画待接入。
+
+二叉树层序遍历接受 `{root,nodes}`，每个节点为 `{id,left,right}`，最多 64 个唯一非空字符串 ID。孩子为空时使用 null，非空孩子须引用已定义的节点。空树为 `{root:null,nodes:[]}`。拒绝环、共享孩子及从根不可达的节点。运行保留输入快照 `input`，步骤与 G 包引擎一致，包含节点关系、FIFO 队列及层号（根为第 1 层）、当前节点、访问顺序和分层结果。主工作台使用节点、队列和分层状态表，支持单步、回看和问答；树形动画待接入。
+
+并查集接受 `{elements, operations}`，1 至 30 个唯一非空字符串元素，最多 60 个操作。操作格式为 `["union", x, y]` 或 `["find", x]`，引用未知元素时返回 400。空操作序列可运行。运行保存输入快照 `input`，步骤使用现有引擎的 `parent`、`rank`、`setCount`、`currentOp` 和 `findPath`。工作台使用父节点表，单步、回看、源码高亮和问答共用当前步骤；树形动画待接入。
 
 图算法标识为 `bfs`、`dfs`、`prim`、`kruskal`、`dijkstra`、`floyd` 和 `topological-sort`。请求接受 `{nodes, edges, directed, start}`。顶点名须唯一，最多 30 个（Floyd 最多 8 个），边最多 120 条。BFS、DFS、拓扑排序使用 `[from, to]`；其他图算法使用 `[from, to, weight]`，权重为有限数值，绝对值不超过 10¹²。Dijkstra 拒绝负权。BFS、DFS、Prim、Dijkstra 需要起点；Prim、Kruskal 固定无向，拓扑排序固定有向。可选方向默认无向。边端点和起点须在顶点列表内。
 

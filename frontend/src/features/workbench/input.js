@@ -1,3 +1,4 @@
+import { dataAlgorithm as cAlgorithm } from './data-algorithms.js';
 import { arraySearch, arraySearchMaxElements } from './array-search.js';
 import { graphAlgorithm } from './graph-algorithms.js';
 
@@ -37,6 +38,12 @@ export function parseInput(arrayText, targetText, algorithm = 'binary-search') {
 function validVariables(step, algorithm) {
   const variables = step.variables;
   if (!variables) return false;
+  if (cAlgorithm(algorithm)) return step.algorithm === algorithm && typeof step.description === 'string' && typeof variables === 'object';
+  if (algorithm === 'binary-tree-level-order') return step.algorithm === algorithm && typeof step.description === 'string' && Array.isArray(variables.nodes) && Array.isArray(variables.queue) && Array.isArray(variables.order) && Array.isArray(variables.levels);
+  if (algorithm === 'union-find') {
+    return typeof step.description === 'string' && variables.parent && variables.rank &&
+      Number.isInteger(variables.setCount) && variables.setCount >= 0;
+  }
   if (arraySearch(algorithm)) {
     const { index, current, comparisons, ranges, blockIndex } = variables;
     return step.algorithm === algorithm && typeof step.description === 'string' && Number.isSafeInteger(step.target) &&
@@ -75,7 +82,7 @@ export function validateRun(run, algorithm = 'binary-search') {
   }
   const ids = new Set(run.sourceLines.map(line => line?.lineId));
   if (ids.size !== run.sourceLines.length || run.sourceLines.some(line => typeof line?.lineId !== 'string' || typeof line.text !== 'string') ||
-      run.steps.some((step,i) => !step || step.stepIndex !== i || !ids.has(step.lineId) || (!graph && !Array.isArray(step.array)) ||
+      run.steps.some((step,i) => !step || step.stepIndex !== i || !ids.has(step.lineId) || (!graph && !cAlgorithm(algorithm) && algorithm !== 'union-find' && algorithm !== 'binary-tree-level-order' && !Array.isArray(step.array)) ||
         !validVariables(step, algorithm))) throw new Error('步骤或源码映射不完整，无法同步展示。');
   return run;
 }

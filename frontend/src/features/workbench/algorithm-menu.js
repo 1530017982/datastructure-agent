@@ -1,9 +1,13 @@
+import { dAlgorithm, dAlgorithmIds } from './d-algorithms.js';
+import { cAlgorithm, cAlgorithmIds } from './c-algorithms.js';
 import { graphAlgorithm, graphAlgorithmIds } from './graph-algorithms.js';
 
 const chapters = [
+  ['第五章 · 树与二叉树', [['binary-tree-level-order', '二叉树层序遍历']]],
   ['第六章 · 图', graphAlgorithmIds.map(id => [id, graphAlgorithm(id).title])],
-  ['第七章 · 查找', [['binary-search', '二分查找'], ['linear-search', '顺序查找'], ['block-search', '分块查找']]],
-  ['第八章 · 排序', [['bubble-sort', '冒泡排序']]],
+  ['并查集', [['union-find', '并查集']]],
+  ['第七章 · 查找', [['binary-search', '二分查找'], ['linear-search', '顺序查找'], ['block-search', '分块查找'], ...cAlgorithmIds.filter(id => cAlgorithm(id).tree).map(id => [id, cAlgorithm(id).title]), ...dAlgorithmIds.map(id => [id, dAlgorithm(id).title])]],
+  ['第八章 · 排序', [['bubble-sort', '冒泡排序'], ...cAlgorithmIds.filter(id => !cAlgorithm(id).tree).map(id => [id, cAlgorithm(id).title])]],
   ['自定义', [['custom-array', '自定义代码']]]
 ];
 

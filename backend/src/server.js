@@ -1,3 +1,5 @@
+import { dAlgorithm } from '../../frontend/src/features/workbench/d-algorithms.js';
+import { cAlgorithm } from '../../frontend/src/features/workbench/c-algorithms.js';
 import { arraySearch } from '../../frontend/src/features/workbench/array-search.js';
 import { graphAlgorithm } from '../../frontend/src/features/workbench/graph-algorithms.js';
 import { createServer } from 'node:http';
@@ -5,7 +7,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { handleCreateRun, handleCreateBubbleRun, handleCreateArraySearchRun, handleCreateGraphRun, handleGetRun, handleGetStep } from './routes/runs.js';
+import { handleCreateRun, handleCreateBubbleRun, handleCreateUnionFindRun, handleCreateLevelOrderRun, handleCreateDRun, handleCreateCRun, handleCreateArraySearchRun, handleCreateGraphRun, handleGetRun, handleGetStep } from './routes/runs.js';
 import { handleGetExercises, handleCheckExercise } from './routes/exercises.js';
 import { getUsage } from './agent/rate-limit.js';
 import { knowledgeResponse } from './knowledge/retrieve.js';
@@ -63,6 +65,10 @@ const server = createServer(async (request, response) => {
     const algorithmRunMatch = pathname.match(/^\/api\/algorithms\/([a-z-]+)\/runs$/);
     if (method === 'POST' && algorithmRunMatch) {
       const [, algorithm] = algorithmRunMatch;
+      if(dAlgorithm(algorithm))return handleCreateDRun(response,await readBody(request),algorithm);
+      if (algorithm === 'binary-tree-level-order') return handleCreateLevelOrderRun(response, await readBody(request));
+      if (cAlgorithm(algorithm)) return handleCreateCRun(response, await readBody(request), algorithm);
+      if (algorithm === 'union-find') return handleCreateUnionFindRun(response, await readBody(request));
       if (graphAlgorithm(algorithm)) return handleCreateGraphRun(response, await readBody(request), algorithm);
       if (arraySearch(algorithm)) return handleCreateArraySearchRun(response, await readBody(request), algorithm);
     }

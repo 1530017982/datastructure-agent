@@ -1,3 +1,4 @@
+import { dataAlgorithm as cAlgorithm } from '../../../frontend/src/features/workbench/data-algorithms.js';
 import { arraySearch } from '../../../frontend/src/features/workbench/array-search.js';
 import { graphAlgorithm } from '../../../frontend/src/features/workbench/graph-algorithms.js';
 import { getRun } from '../runs/store.js';
@@ -94,7 +95,12 @@ async function explain(parsedBody, ctx = {}) {
   const bfs = run.algorithm === 'bfs';
   const graph = graphAlgorithm(run.algorithm);
   const search = arraySearch(run.algorithm);
-  const stepRefs = search
+  const c = cAlgorithm(run.algorithm);
+  const tree=run.algorithm==='binary-tree-level-order';
+  const uf = run.algorithm === 'union-find';
+  const stepRefs = uf || c || tree
+    ? [{ runId, stepIndex: idx, algorithm: run.algorithm, event: ev, variables: step.variables }]
+    : search
     ? [{ runId, stepIndex: idx, algorithm: run.algorithm, event: ev, target, array: arr, variables: step.variables }]
     : graph
     ? [{ runId, stepIndex: idx, algorithm: run.algorithm, event: ev, variables: step.variables }]
@@ -161,7 +167,19 @@ async function explain(parsedBody, ctx = {}) {
   const prefix = '[Mock开发模式] ';
   let answer = '';
 
-  if (bfs) {
+  if(tree){
+    answer=prefix+'层序遍历第 '+(stepNo+1)+' 步。'+step.description;
+    if(level>=2)answer+=' 当前队列（队首在左）：'+(step.variables.queue.map(entry=>entry.id+'（第'+entry.level+'层）').join('、')||'空')+'。';
+    if(level===3 && steps[idx+1])answer+=' 下一步：'+steps[idx+1].description;
+  }else if (c) {
+    answer = prefix + c.title + '第 ' + (stepNo + 1) + ' 步。' + step.description;
+    if (level >= 2) answer += ' 当前状态：' + JSON.stringify(step.variables);
+    if (level === 3 && steps[idx + 1]) answer += ' 下一步：' + steps[idx + 1].description;
+  } else if (uf) {
+    answer = prefix + '并查集第 ' + (stepNo + 1) + ' 步。' + step.description;
+    if (level >= 2) answer += ' 当前集合数量为 ' + step.variables.setCount + '，父节点表为 ' + JSON.stringify(step.variables.parent) + '。';
+    if (level === 3 && steps[idx + 1]) answer += ' 下一步：' + steps[idx + 1].description;
+  } else if (bfs) {
     const { queue, currentNode, currentEdge, discoveryOrder } = step.variables;
     answer = prefix + 'BFS 第 ' + (stepNo + 1) + ' 步。' + step.description +
       ' 队列（队首到队尾）：' + (queue.join(' → ') || '空') + '。';

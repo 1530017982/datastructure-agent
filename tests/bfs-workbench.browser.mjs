@@ -31,7 +31,7 @@ try {
   await trigger.hover();
   const graphChapter = page.getByRole('button', { name: '第六章 · 图' });
   await graphChapter.hover();
-  const graphMenu = page.locator('#algorithm-chapter-0');
+  const graphMenu = page.locator('#' + await graphChapter.getAttribute('aria-controls'));
   await graphMenu.waitFor();
   const graphBounds = await graphMenu.boundingBox();
   const chapterBounds = await graphChapter.boundingBox();
@@ -43,6 +43,7 @@ try {
   assert.equal(await page.locator('#algorithm-chapters').isHidden(), true);
   await trigger.focus();
   await page.keyboard.press('ArrowDown');
+  await graphChapter.focus();
   await page.keyboard.press('ArrowRight');
   assert.equal(await page.locator('[data-algorithm-choice="bfs"]').evaluate(node => node === document.activeElement), true);
   await page.keyboard.press('Escape');
