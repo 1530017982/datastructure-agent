@@ -35,23 +35,18 @@ export function generateInsertionSortSteps(input) {
   }
 
   for (let i = 1; i < array.length; i++) {
-    state.i = i;
-    state.temp = array[i];
-    state.insertIndex = null;
+    state.i = i; state.temp = array[i]; state.insertIndex = null;
     record('select', 'temp', `取出当前元素 ${state.temp}，准备插入。`, { j: i - 1 });
 
     let j = i - 1;
     state.j = j;
     while (j >= 0 && array[j] > state.temp) {
-      record('compare', 'compare', `比较 A[${j}] = ${array[j]} 和 ${state.temp}，左边更大，需要向右移动。`);
+      record('compare', 'compare', `比较 A[${j}] = ${array[j]} 和 ${state.temp}。`);
       array[j + 1] = array[j];
       record('move', 'move', `将 A[${j}] 移动到位置 ${j + 1}。`);
-      j--;
-      state.j = j;
+      j--; state.j = j;
     }
-    if (j >= 0) {
-      record('compare', 'compare', `比较 A[${j}] = ${array[j]} 和 ${state.temp}，左边更小或等于，停止移动。`);
-    }
+    if (j >= 0) record('compare', 'compare', `比较 A[${j}] = ${array[j]} 和 ${state.temp}，停止移动。`);
 
     array[j + 1] = state.temp;
     state.insertIndex = j + 1;

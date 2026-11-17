@@ -37,46 +37,41 @@ export function generateQuickSortSteps(input) {
 
     let pivot = array[low];
     state.pivot = pivot;
-    record('init-pivot', 'init-pivot', `选取基准值 pivot = ${pivot}。`);
+    record('init-pivot', 'init-pivot', `选取枢轴 pivot = ${pivot}。`);
 
     let i = low, j = high;
     state.i = i; state.j = j;
-    record('init-pointers', 'init-pointers', `初始化双指针 i = ${i}, j = ${j}。`);
+    record('init-pointers', 'init-pointers', `初始化双指针。`);
 
     while (i < j) {
       while (i < j && array[j] >= pivot) {
         state.i = i; state.j = j;
-        record('compare-right', 'scan-right', `比较 A[${j}] = ${array[j]} 和 ${pivot}。`);
+        record('compare-right', 'scan-right', `比较 A[${j}] 和 ${pivot}。`);
         j--;
       }
       state.i = i; state.j = j;
       if (i < j) {
-        record('fill-left', 'fill-left', `将 A[${j}] 填到左边空位 A[${i}]。`, { fillFrom: j, fillTo: i });
-        array[i] = array[j];
-        i++;
-        state.i = i;
+        record('fill-left', 'fill-left', `将 A[${j}] 填到左边。`, { fillFrom: j, fillTo: i });
+        array[i] = array[j]; i++; state.i = i;
       }
 
       while (i < j && array[i] <= pivot) {
         state.i = i; state.j = j;
-        record('compare-left', 'scan-left', `比较 A[${i}] = ${array[i]} 和 ${pivot}。`);
+        record('compare-left', 'scan-left', `比较 A[${i}] 和 ${pivot}。`);
         i++;
       }
       state.i = i; state.j = j;
       if (i < j) {
-        record('fill-right', 'fill-right', `将 A[${i}] 填到右边空位 A[${j}]。`, { fillFrom: i, fillTo: j });
-        array[j] = array[i];
-        j--;
-        state.j = j;
+        record('fill-right', 'fill-right', `将 A[${i}] 填到右边。`, { fillFrom: i, fillTo: j });
+        array[j] = array[i]; j--; state.j = j;
       }
     }
 
     array[i] = pivot;
     state.i = i; state.j = j;
-    record('place-pivot', 'place-pivot', `基准值 ${pivot} 归位到位置 ${i}。`);
+    record('place-pivot', 'place-pivot', `枢轴 ${pivot} 归位。`);
 
-    quickSort(low, i - 1);
-    quickSort(i + 1, high);
+    quickSort(low, i - 1); quickSort(i + 1, high);
   }
 
   quickSort(0, array.length - 1);

@@ -18,8 +18,6 @@ const SOURCE_LINES = [
 export function generateMergeSortSteps(input) {
   const array = [...input];
   const steps = [];
-  
-  // 使用局部状态对象，避免全局污染
   let state = { low: 0, high: 0, mid: 0, i: 0, j: 0, k: 0, p: null, temp: [] };
 
   function record(event, lineId, description, extra = {}) {
@@ -35,7 +33,6 @@ export function generateMergeSortSteps(input) {
   record('init', 'init', '开始归并排序。');
 
   function mergeSort(low, high) {
-    // 初始化当前帧的状态
     state.low = low; state.high = high; state.mid = null;
     state.i = null; state.j = null; state.k = null; state.p = null;
     
@@ -43,12 +40,11 @@ export function generateMergeSortSteps(input) {
 
     let mid = Math.floor((low + high) / 2);
     state.mid = mid;
-    record('divide', 'calc-mid', `将区间 [${low}, ${high}] 从 ${mid} 分开。`);
+    record('divide', 'calc-mid', `将区间 [${low}, ${high}] 分开。`);
 
     mergeSort(low, mid);
     mergeSort(mid + 1, high);
 
-    // 【核心修复】：递归返回后，必须重新恢复当前帧的 low/high/mid，防止被子调用污染
     state.low = low; state.high = high; state.mid = mid;
     state.i = low; state.j = mid + 1; state.k = 0;
     
@@ -74,15 +70,13 @@ export function generateMergeSortSteps(input) {
     }
     
     while (i <= mid) { 
-      temp.push(array[i]); 
-      state.temp = [...temp]; state.i = i + 1; state.k = k + 1;
-      record('pick', 'pick-remain', `左半部分剩余 A[${i}] 放入临时数组。`, { pickedValue: array[i] }); 
+      temp.push(array[i]); state.temp = [...temp]; state.i = i + 1; state.k = k + 1;
+      record('pick', 'pick-remain', `左剩余 A[${i}] 放入临时数组。`, { pickedValue: array[i] }); 
       i++; k++;
     }
     while (j <= high) { 
-      temp.push(array[j]); 
-      state.temp = [...temp]; state.j = j + 1; state.k = k + 1;
-      record('pick', 'pick-remain', `右半部分剩余 A[${j}] 放入临时数组。`, { pickedValue: array[j] }); 
+      temp.push(array[j]); state.temp = [...temp]; state.j = j + 1; state.k = k + 1;
+      record('pick', 'pick-remain', `右剩余 A[${j}] 放入临时数组。`, { pickedValue: array[j] }); 
       j++; k++;
     }
 
@@ -90,7 +84,7 @@ export function generateMergeSortSteps(input) {
     for (let p = 0; p < k; p++) {
       array[low + p] = temp[p];
       state.p = p + 1;
-      record('copy', 'copy-back', `将 temp[${p}] = ${temp[p]} 写回 A[${low + p}]。`);
+      record('copy', 'copy-back', `将 temp[${p}] 写回 A[${low + p}]。`);
     }
     state.p = null;
     record('merge', 'copy-back', `区间 [${low}, ${high}] 合并完成。`);

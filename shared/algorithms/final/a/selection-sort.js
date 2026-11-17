@@ -11,7 +11,7 @@ const SOURCE_LINES = [
   { lineId: 'check-swap', text: '    if (minIndex != i) {' },
   { lineId: 'swap', text: '      long long t = a[i]; a[i] = a[minIndex]; a[minIndex] = t;' },
   { lineId: 'swap-end', text: '    }' },
-  { lineId: 'outer-loop-end', text: '  }' },  // 修复：补上外层循环闭合
+  { lineId: 'outer-loop-end', text: '  }' },
   { lineId: 'done', text: '}' },
 ];
 
@@ -32,34 +32,30 @@ export function generateSelectionSortSteps(input) {
 
   record('init', 'init', '开始简单选择排序。');
   if (array.length <= 1) {
-    record('sorted', 'done', '数组为空或只有一个元素，已经有序。');
+    record('sorted', 'done', '数组有序。');
     return { steps, result: array, sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES };
   }
 
   for (let i = 0; i < array.length - 1; i++) {
     state.i = i; state.j = -1;
-    let minIndex = i;
-    state.minIndex = minIndex;
-    record('init-min', 'init-min', `将下标 ${i} 设为当前最小值候选。`);
+    let minIndex = i; state.minIndex = minIndex;
+    record('init-min', 'init-min', `假设 ${i} 是最小值。`);
 
     for (let j = i + 1; j < array.length; j++) {
       state.j = j;
       record('compare', 'compare', `比较 A[${j}] 和 A[${minIndex}]。`);
       if (array[j] < array[minIndex]) {
-        minIndex = j;
-        state.minIndex = minIndex;
-        record('update-min', 'update-min', `发现更小值，更新最小值下标为 ${j}。`);
+        minIndex = j; state.minIndex = minIndex;
+        record('update-min', 'update-min', `更新最小值为 ${j}。`);
       }
     }
 
     if (minIndex !== i) {
       record('check-swap', 'check-swap', `交换 A[${i}] 和 A[${minIndex}]。`);
-      const temp = array[i];
-      array[i] = array[minIndex];
-      array[minIndex] = temp;
+      const temp = array[i]; array[i] = array[minIndex]; array[minIndex] = temp;
       record('swap', 'swap', `交换完成。`);
     } else {
-      record('check-swap', 'check-swap', `最小值就是当前元素，无需交换。`);
+      record('check-swap', 'check-swap', `无需交换。`);
     }
   }
 

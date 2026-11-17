@@ -36,65 +36,49 @@ export function generateHeapSortSteps(input) {
   }
 
   function heapify(n, i) {
-    let largest = i;
-    let l = 2 * i + 1;
-    let r = 2 * i + 2;
-    
-    // 内部上下文，随记录发生改变
+    let largest = i, l = 2 * i + 1, r = 2 * i + 2;
     state.heapSize = n; state.i = i; state.largest = largest; state.l = l; state.r = r;
     record('heapify-init', 'init-largest', `调整节点 i=${i}。`);
 
     if (l < n) {
       record('compare', 'compare-l', `比较左孩子 A[${l}] 和 A[${largest}]。`);
       if (array[l] > array[largest]) {
-        largest = l;
-        state.largest = largest;
-        record('update-largest', 'compare-l', `左孩子更大，更新最大值为 ${largest}。`);
+        largest = l; state.largest = largest;
+        record('update-largest', 'compare-l', `左孩子更大，更新 largest=${largest}。`);
       }
     }
     if (r < n) {
       record('compare', 'compare-r', `比较右孩子 A[${r}] 和 A[${largest}]。`);
       if (array[r] > array[largest]) {
-        largest = r;
-        state.largest = largest;
-        record('update-largest', 'compare-r', `右孩子更大，更新最大值为 ${largest}。`);
+        largest = r; state.largest = largest;
+        record('update-largest', 'compare-r', `右孩子更大，更新 largest=${largest}。`);
       }
     }
     if (largest !== i) {
       record('check-swap', 'check-swap', `交换 A[${i}] 和 A[${largest}]。`);
-      const temp = array[i];
-      array[i] = array[largest];
-      array[largest] = temp;
+      const temp = array[i]; array[i] = array[largest]; array[largest] = temp;
       record('swap', 'swap-node', `交换完成。`);
-      
       heapify(n, largest);
     }
   }
 
   record('init', 'init', '开始堆排序。');
-  if (array.length <= 1) {
-    record('sorted', 'done', '数组已有序。');
-    return { steps, result: array, sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES };
-  }
+  if (array.length <= 1) { record('sorted', 'done', '数组有序。'); return { steps, result: array, sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES }; }
 
   let n = array.length;
   record('build-start', 'build-heap', `开始建堆。`);
   for (let i = Math.floor(n / 2) - 1; i >= 0; i--) {
-    // 修复：调用前置空局部状态，只记录外层调用参数
     state = { heapSize: n, i: i, largest: null, l: null, r: null };
     record('heapify-call', 'heapify-call-1', `调整以 ${i} 为根的子树。`);
     heapify(n, i);
   }
 
-  record('extract-start', 'extract-loop', `开始提取最大值。`);
+  record('extract-start', 'extract-loop', `提取最大值。`);
   for (let i = n - 1; i > 0; i--) {
     state = { heapSize: i, i: i, largest: null, l: null, r: null };
-    record('swap-root', 'swap-root', `将堆顶 A[0] 与末尾 A[${i}] 交换。`);
-    const temp = array[0];
-    array[0] = array[i];
-    array[i] = temp;
+    record('swap-root', 'swap-root', `堆顶 A[0] 与末尾 A[${i}] 交换。`);
+    const temp = array[0]; array[0] = array[i]; array[i] = temp;
     record('swap', 'swap-root', `交换完成。`);
-
     record('heapify-call', 'heapify-call-2', `对前 ${i} 个元素重新调整。`);
     heapify(i, 0);
   }
