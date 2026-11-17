@@ -13,18 +13,7 @@ function parseArray(arrayText, limit) {
 }
 
 export function parseInput(arrayText, targetText, algorithm = 'binary-search') {
-  // 显式列出所有排序算法，避免误伤其他带有 -sort 后缀的潜在非数组算法
-  const sortAlgorithms = [
-    'bubble-sort', 
-    'insertion-sort', 
-    'binary-insertion-sort', 
-    'shell-sort', 
-    'selection-sort', 
-    'quick-sort', 
-    'heap-sort', 
-    'merge-sort'
-  ];
-
+  const sortAlgorithms = ['bubble-sort', 'insertion-sort', 'binary-insertion-sort', 'shell-sort', 'selection-sort', 'quick-sort', 'heap-sort', 'merge-sort'];
   if (sortAlgorithms.includes(algorithm)) return { array: parseArray(arrayText, 24) };
   
   if (algorithm === 'custom-array') {
@@ -50,11 +39,58 @@ export function parseInput(arrayText, targetText, algorithm = 'binary-search') {
   return { array, target };
 }
 
+// --- 辅助校验函数 ---
+function isIntOrNull(v) { return v === null || Number.isInteger(v); }
+
+function validateSortVariables(step, algorithm) {
+  const v = step.variables;
+  const isDone = step.done;
+  const len = step.array.length;
+
+  if (algorithm === 'insertion-sort') {
+    return isIntOrNull(v.i) && isIntOrNull(v.j) && isIntOrNull(v.temp) && isIntOrNull(v.insertIndex);
+  }
+  if (algorithm === 'binary-insertion-sort') {
+    return isIntOrNull(v.i) && isIntOrNull(v.left) && isIntOrNull(v.right) && isIntOrNull(v.mid) && isIntOrNull(v.temp) && isIntOrNull(v.insertIndex);
+  }
+  if (algorithm === 'shell-sort') {
+    return isIntOrNull(v.gap) && isIntOrNull(v.i) && isIntOrNull(v.j) && isIntOrNull(v.temp) && isIntOrNull(v.insertIndex) && (v.gap === null || v.gap > 0);
+  }
+  if (algorithm === 'selection-sort') {
+    if (!isIntOrNull(v.i) || !isIntOrNull(v.j) || !isIntOrNull(v.minIndex)) return false;
+    if (v.minIndex !== null && (v.minIndex < 0 || v.minIndex >= len)) return false;
+    return true;
+  }
+  if (algorithm === 'quick-sort') {
+    if (!isIntOrNull(v.low) || !isIntOrNull(v.high) || !isIntOrNull(v.i) || !isIntOrNull(v.j) || !isIntOrNull(v.pivot)) return false;
+    if (v.low !== null && (v.low < 0 || v.low >= len)) return false;
+    if (v.high !== null && (v.high < 0 || v.high >= len)) return false;
+    return true;
+  }
+  if (algorithm === 'heap-sort') {
+    if (!isIntOrNull(v.heapSize) || !isIntOrNull(v.i) || !isIntOrNull(v.largest) || !isIntOrNull(v.l) || !isIntOrNull(v.r)) return false;
+    if (v.heapSize !== null && (v.heapSize < 0 || v.heapSize > len)) return false;
+    if (v.i !== null && (v.i < 0 || v.i >= v.heapSize)) return false;
+    return true;
+  }
+  if (algorithm === 'merge-sort') {
+    if (!isIntOrNull(v.low) || !isIntOrNull(v.high) || !isIntOrNull(v.mid) || !isIntOrNull(v.i) || !isIntOrNull(v.j) || !isIntOrNull(v.k) || !isIntOrNull(v.p)) return false;
+    if (!Array.isArray(v.temp) || !v.temp.every(Number.isInteger)) return false;
+    // 检查区间边界
+    if (v.low !== null && (v.low < 0 || v.low >= len)) return false;
+    if (v.high !== null && (v.high < 0 || v.high >= len)) return false;
+    if (v.mid !== null && (v.mid < v.low || v.mid >= v.high)) return false;
+    // 检查 temp 长度与 k 的关系
+    if (v.k !== null && v.temp.length !== v.k) return false;
+    return true;
+  }
+  return true;
+}
+
 function validVariables(step, algorithm) {
   const variables = step.variables;
   if (!variables) return false;
 
-  // 1. D 包：查找算法
   if (arraySearch(algorithm)) {
     const { index, current, comparisons, ranges, blockIndex } = variables;
     return step.algorithm === algorithm && typeof step.description === 'string' && Number.isSafeInteger(step.target) &&
@@ -64,14 +100,12 @@ function validVariables(step, algorithm) {
         (blockIndex === null || (Number.isInteger(blockIndex) && blockIndex >= 0 && blockIndex < ranges.length))));
   }
 
-  // 2. B 包：图算法
   const graph = graphAlgorithm(algorithm);
   if (graph) {
     return step.algorithm === algorithm && typeof step.description === 'string' &&
       graph.fields.every(([key]) => Object.hasOwn(variables, key));
   }
 
-  // 3. 自定义代码
   if (algorithm === 'custom-array') {
     const { line, index, writes } = variables;
     return typeof step.description === 'string' && Number.isInteger(line) && line > 0 && String(line) === step.lineId &&
@@ -79,7 +113,6 @@ function validVariables(step, algorithm) {
       (index === null || (Number.isInteger(index) && index >= 0 && index < step.array.length));
   }
 
-  // 4. 原有冒泡排序（恢复严格的字段校验）
   if (algorithm === 'bubble-sort') {
     const { index, pass, sortedFrom } = variables;
     return step.algorithm === algorithm && typeof step.description === 'string' && Number.isInteger(pass) && pass >= 0 &&
@@ -87,28 +120,13 @@ function validVariables(step, algorithm) {
       (index === null || (Number.isInteger(index) && index >= 0 && index + 1 < step.array.length));
   }
 
-  // 5. A 包：新增的 7 种比较排序（定制结构校验）
-  const sortRequiredFields = {
-    'insertion-sort': ['i', 'j', 'temp', 'insertIndex'],
-    'binary-insertion-sort': ['i', 'left', 'right', 'mid', 'temp', 'insertIndex'],
-    'shell-sort': ['gap', 'i', 'j', 'temp', 'insertIndex'],
-    'selection-sort': ['i', 'j', 'minIndex'],
-    'quick-sort': ['low', 'high', 'i', 'j', 'pivot'],
-    'heap-sort': ['heapSize', 'i', 'largest', 'l', 'r'],
-    'merge-sort': ['low', 'high', 'mid', 'i', 'j', 'k', 'p', 'temp']
-  };
-
-  if (Object.hasOwn(sortRequiredFields, algorithm)) {
+  // A 包排序算法严格校验
+  const sortAlgorithms = ['insertion-sort', 'binary-insertion-sort', 'shell-sort', 'selection-sort', 'quick-sort', 'heap-sort', 'merge-sort'];
+  if (sortAlgorithms.includes(algorithm)) {
     if (step.algorithm !== algorithm || typeof step.description !== 'string') return false;
-    const req = sortRequiredFields[algorithm];
-    if (!req.every(k => Object.hasOwn(variables, k))) return false;
-    
-    // 对特殊字段做类型检查
-    if (algorithm === 'merge-sort' && !Array.isArray(variables.temp)) return false;
-    return true;
+    return validateSortVariables(step, algorithm);
   }
 
-  // 6. 兜底：二分查找
   return Number.isSafeInteger(variables.left) && Number.isSafeInteger(variables.right) &&
     (variables.mid === null || Number.isSafeInteger(variables.mid));
 }
