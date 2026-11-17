@@ -32,7 +32,6 @@ async function readBody(request) {
   return Buffer.concat(chunks).toString('utf8');
 }
 
-// ===== P1 FIX: AGENT_MOCK 显式优先 =====
 const mockEnabled = process.env.AGENT_MOCK === 'true';
 const hasRealModel = !mockEnabled && Boolean(process.env.DEEPSEEK_API_KEY);
 
@@ -41,21 +40,15 @@ const server = createServer(async (request, response) => {
     const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
     const method = request.method;
 
-    // 1. 健康检查
     if (pathname === '/api/health' && method === 'GET') {
       return json(response, 200, {
-        ok: true,
-        stage: 'scaffold',
-        implemented: ['static-page', 'health', 'runs', 'exercises', 'agent', 'knowledge'],
-        modelCallsEnabled: hasRealModel,
-        mode: mockEnabled ? 'mock' : (hasRealModel ? 'deepseek' : 'disabled')
+        ok: true, stage: 'scaffold', implemented: ['static-page', 'health', 'runs', 'exercises', 'agent', 'knowledge'],
+        modelCallsEnabled: hasRealModel, mode: mockEnabled ? 'mock' : (hasRealModel ? 'deepseek' : 'disabled')
       });
     }
 
-    // 2. 04 运行路由
     if (pathname === '/api/algorithms/binary-search/runs' && method === 'POST') {
-      const body = await readBody(request);
-      return handleCreateRun(request, response, body);
+      return handleCreateRun(request, response, await readBody(request));
     }
     if (pathname === '/api/algorithms/bubble-sort/runs' && method === 'POST') {
       return handleCreateBubbleRun(response, await readBody(request));
@@ -65,59 +58,39 @@ const server = createServer(async (request, response) => {
       const [, algorithm] = algorithmRunMatch;
       if (graphAlgorithm(algorithm)) return handleCreateGraphRun(response, await readBody(request), algorithm);
       if (arraySearch(algorithm)) return handleCreateArraySearchRun(response, await readBody(request), algorithm);
-      // --- 新增：将新加的排序算法路由过去 ---
+      // A包新增路由分发
       if (algorithm.endsWith('-sort') && algorithm !== 'bubble-sort') {
         return handleCreateSortRun(response, await readBody(request), algorithm);
       }
     }
     if (pathname === '/api/algorithms/custom-array/runs' && method === 'POST') {
-      if (!acceptsLocalCode(request)) {
-        return json(response, 403, { error: { code: 'LOCAL_ONLY', message: '请从本机工作台打开自定义代码。' } });
-      }
-      if (request.headers['content-type']?.split(';')[0].trim().toLowerCase() !== 'application/json') {
-        return json(response, 400, { error: { code: 'INVALID_INPUT', message: '请求必须是 JSON。' } });
-      }
+      if (!acceptsLocalCode(request)) return json(response, 403, { error: { code: 'LOCAL_ONLY', message: '请从本机工作台打开自定义代码。' } });
+      if (request.headers['content-type']?.split(';')[0].trim().toLowerCase() !== 'application/json') return json(response, 400, { error: { code: 'INVALID_INPUT', message: '请求必须是 JSON。' } });
       const body = await readBody(request);
       let input;
-      try { input = JSON.parse(body); } catch {
-        return json(response, 400, { error: { code: 'INVALID_INPUT', message: '请求体不是合法 JSON。' } });
-      }
-      try {
-        return json(response, 200, createRun(await runCustomCode(input)));
-      } catch (error) {
+      try { input = JSON.parse(body); } catch { return json(response, 400, { error: { code: 'INVALID_INPUT', message: '请求体不是合法 JSON。' } }); }
+      try { return json(response, 200, createRun(await runCustomCode(input))); }
+      catch (error) {
         if (!(error instanceof CodeRunError)) throw error;
         return json(response, error.status, { error: { code: error.code, message: error.message } });
       }
     }
 
     const stepMatch = pathname.match(/^\/api\/runs\/([^/]+)\/steps\/(\d+)$/);
-    if (stepMatch && method === 'GET') {
-      return handleGetStep(request, response, stepMatch[1], stepMatch[2]);
-    }
+    if (stepMatch && method === 'GET') return handleGetStep(request, response, stepMatch[1], stepMatch[2]);
 
     const runMatch = pathname.match(/^\/api\/runs\/([^/]+)$/);
-    if (runMatch && method === 'GET') {
-      return handleGetRun(request, response, runMatch[1]);
-    }
+    if (runMatch && method === 'GET') return handleGetRun(request, response, runMatch[1]);
 
-    // 3. 04 题目与判分路由
-    if (pathname === '/api/exercises' && method === 'GET') {
-      return handleGetExercises(request, response);
-    }
-    if (pathname === '/api/exercises/check' && method === 'POST') {
-      const body = await readBody(request);
-      return handleCheckExercise(request, response, body);
-    }
+    if (pathname === '/api/exercises' && method === 'GET') return handleGetExercises(request, response);
+    if (pathname === '/api/exercises/check' && method === 'POST') return handleCheckExercise(request, response, await readBody(request));
 
-    // 4. 05 Agent 解释路由
     if (pathname === '/api/agent/explain' && method === 'POST') {
       if (mockEnabled) {
         try {
           const body = await readBody(request);
           let input = {};
-          try { input = body ? JSON.parse(body) : {}; } catch {
-            return json(response, 400, { error: { code: 'INVALID_INPUT', message: '请求体不是合法 JSON' } });
-          }
+          try { input = body ? JSON.parse(body) : {}; } catch { return json(response, 400, { error: { code: 'INVALID_INPUT', message: '请求体不是合法 JSON' } }); }
           const { handleAgentExplain } = await import('./agent/explain.mjs');
           const result = await handleAgentExplain(input, { mode: 'mock', req: request });
           return json(response, result.status, result.body);
@@ -126,40 +99,26 @@ const server = createServer(async (request, response) => {
           return json(response, 400, { error: { code: 'INVALID_INPUT', message: 'Agent 请求处理失败' } });
         }
       }
-
       if (hasRealModel) {
         try {
           const body = await readBody(request);
           let input = {};
-          try { input = body ? JSON.parse(body) : {}; } catch {
-            return json(response, 400, { error: { code: 'INVALID_INPUT', message: '请求体不是合法 JSON' } });
-          }
+          try { input = body ? JSON.parse(body) : {}; } catch { return json(response, 400, { error: { code: 'INVALID_INPUT', message: '请求体不是合法 JSON' } }); }
           const { handleAgentExplain } = await import('./agent/explain.mjs');
           const result = await handleAgentExplain(input, { mode: 'real', req: request });
           return json(response, result.status, result.body);
         } catch (err) {
           if (err.message === 'BODY_TOO_LARGE') throw err;
-          if (err.message === 'MODEL_TIMEOUT') {
-            return json(response, 504, { error: { code: 'MODEL_TIMEOUT', message: '模型响应超时，请稍后重试' } });
-          }
+          if (err.message === 'MODEL_TIMEOUT') return json(response, 504, { error: { code: 'MODEL_TIMEOUT', message: '模型响应超时，请稍后重试' } });
           return json(response, 502, { error: { code: 'MODEL_CALL_FAILED', message: '模型调用失败' } });
         }
       }
-
-      return json(response, 503, {
-        error: {
-          code: 'MODEL_NOT_CONFIGURED',
-          message: '模型未配置。请设置 AGENT_MOCK=true 启用 Mock 模式，或配置 DEEPSEEK_API_KEY 启用真实模型。'
-        }
-      });
+      return json(response, 503, { error: { code: 'MODEL_NOT_CONFIGURED', message: '模型未配置。' } });
     }
 
-    // 5. 用量查询接口
     if (pathname === '/api/agent/usage' && method === 'GET') {
       const url = new URL(request.url, 'http://localhost');
-      const querySessionId = url.searchParams.get('sessionId');
-      const headerSessionId = request.headers['x-session-id'];
-      const sessionId = querySessionId || headerSessionId || 'anon';
+      const sessionId = url.searchParams.get('sessionId') || request.headers['x-session-id'] || 'anon';
       return json(response, 200, { ok: true, ...getUsage(request, sessionId) });
     }
 
@@ -168,7 +127,6 @@ const server = createServer(async (request, response) => {
       return json(response, result.status, result.body);
     }
 
-    // 6. 静态文件
     if (pathname.startsWith('/api/')) return json(response, 404, { error: { code: 'NOT_FOUND', message: '接口不存在。' } });
     if (!['GET', 'HEAD'].includes(method)) return json(response, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: '请求方法不支持。' } });
     const file = resolve(frontendRoot, '.' + (pathname === '/' ? '/index.html' : pathname));
@@ -184,9 +142,7 @@ const server = createServer(async (request, response) => {
       throw error;
     }
   } catch (error) {
-    if (error.message === 'BODY_TOO_LARGE') {
-      return json(response, 400, { error: { code: 'INVALID_INPUT', message: '请求体超过 10KB 限制' } });
-    }
+    if (error.message === 'BODY_TOO_LARGE') return json(response, 400, { error: { code: 'INVALID_INPUT', message: '请求体超过 10KB 限制' } });
     console.error(error);
     json(response, 400, { error: { code: 'INVALID_REQUEST', message: '请求无法处理。' } });
   }
