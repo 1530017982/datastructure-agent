@@ -59,24 +59,24 @@ export function generateMergeSortSteps(input) {
       if (array[i] <= array[j]) {
         temp.push(array[i]);
         state.temp = [...temp]; state.i = i + 1; state.k = k + 1;
-        record('pick', 'pick-left', `将 A[${i}] 放入临时数组。`, { pickedValue: array[i] });
+        record('pick', 'pick-left', `将 A[${i}] 放入临时数组。`, { pickedValue: array[i], readIndex: i });
         i++; k++;
       } else {
         temp.push(array[j]);
         state.temp = [...temp]; state.j = j + 1; state.k = k + 1;
-        record('pick', 'pick-right', `将 A[${j}] 放入临时数组。`, { pickedValue: array[j] });
+        record('pick', 'pick-right', `将 A[${j}] 放入临时数组。`, { pickedValue: array[j], readIndex: j });
         j++; k++;
       }
     }
     
     while (i <= mid) { 
       temp.push(array[i]); state.temp = [...temp]; state.i = i + 1; state.k = k + 1;
-      record('pick', 'pick-remain', `左剩余 A[${i}] 放入临时数组。`, { pickedValue: array[i] }); 
+      record('pick', 'pick-remain', `左剩余 A[${i}] 放入临时数组。`, { pickedValue: array[i], readIndex: i });
       i++; k++;
     }
     while (j <= high) { 
       temp.push(array[j]); state.temp = [...temp]; state.j = j + 1; state.k = k + 1;
-      record('pick', 'pick-remain', `右剩余 A[${j}] 放入临时数组。`, { pickedValue: array[j] }); 
+      record('pick', 'pick-remain', `右剩余 A[${j}] 放入临时数组。`, { pickedValue: array[j], readIndex: j });
       j++; k++;
     }
 

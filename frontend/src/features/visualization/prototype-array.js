@@ -31,7 +31,7 @@ function markerX(variables, key, center) {
 }
 
 // 根据算法和变量判断当前格子是否正在被操作/比较
-function isComparing(algorithm, variables, index) {
+function isComparing(algorithm, variables, index, event) {
   if (!variables) return false;
   const v = variables;
   switch (algorithm) {
@@ -42,7 +42,12 @@ function isComparing(algorithm, variables, index) {
     case 'quick-sort': return v.i === index || v.j === index || v.low === index || v.high === index;
     case 'heap-sort': return v.i === index || v.largest === index;
     case 'shell-sort': return v.j === index || (v.j !== null && v.j - v.gap === index);
-    case 'merge-sort': return v.i === index || v.j === index || v.low === index || v.high === index || v.k === index;
+    case 'merge-sort':
+      // temp uses local offsets; only original-array positions belong on this chart.
+      if (index < v.low || index > v.high) return false;
+      if (event === 'pick') return v.readIndex === index;
+      if (event === 'copy') return Number.isInteger(v.p) && v.p > 0 && v.low + v.p - 1 === index;
+      return event === 'compare' && (v.i === index || v.j === index);
     default: return false;
   }
 }
@@ -69,6 +74,8 @@ export function buildPrototypeArrayFrame(step, { previous, enter, reduced }) {
   const search = arraySearch(step.algorithm);
   const ranges = step.algorithm === 'block-search' ? variables.ranges : [];
   const sorting = SORT_ALGORITHMS.includes(step.algorithm);
+  const sortingFinished = sorting && (step.done || event === 'sorted');
+  const sortingActive = sorting && event !== 'init' && !sortingFinished;
   const custom = step.algorithm === 'custom-array';
   const adjacent = previous && Math.abs(previous.stepIndex - step.stepIndex) === 1;
   const swapIndex = !enter && adjacent
@@ -112,14 +119,14 @@ export function buildPrototypeArrayFrame(step, { previous, enter, reduced }) {
     if (excluded) cell.classList.add('is-excluded');
     const found = event === 'found' && index === result;
     if (search && !found && index === variables.index) cell.classList.add('is-comparing');
-    if (index === variables.mid) cell.classList.add('is-mid');
+    if ((!sorting || sortingActive) && index === variables.mid) cell.classList.add('is-mid');
     if (found) cell.classList.add('is-found');
     if (custom && event === 'write' && index === variables.index) cell.classList.add('is-comparing');
     
     // 修复：使用具体的映射逻辑来高亮排序状态
     if (sorting) {
-      if (isSorted(step.algorithm, variables, index)) cell.classList.add('is-sorted');
-      if (isComparing(step.algorithm, variables, index)) cell.classList.add('is-comparing');
+      if (sortingFinished || (sortingActive && isSorted(step.algorithm, variables, index))) cell.classList.add('is-sorted');
+      if (sortingActive && isComparing(step.algorithm, variables, index, event)) cell.classList.add('is-comparing');
     }
 
     const label = String(value);
@@ -175,6 +182,7 @@ export function buildPrototypeArrayFrame(step, { previous, enter, reduced }) {
   }
 
   for (const { key, label, y } of MARKERS) {
+    if (sorting && !sortingActive) continue;
     const x = markerX(variables, key, center);
     if (x === null) continue;
     const marker = svgElement('g', { class: `prototype-marker is-${key}`, 'data-ptr': key });
