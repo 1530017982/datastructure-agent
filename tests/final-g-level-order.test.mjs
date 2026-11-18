@@ -18,6 +18,23 @@ test('replays the default tree in FIFO order with one-based levels', () => {
     assert.equal(step.done, index === steps.length - 1);
     assert.deepEqual(step.result, step.done ? result : null);
   });
+  const enqueues = steps.filter(step => step.event === 'enqueue');
+  assert.deepEqual(enqueues.map(({ lineId, variables }) => [lineId, variables.queuedNode.id, variables.queuedNode.level]), [
+    ['enqueue-root', 'A', 1],
+    ['enqueue-left', 'B', 2],
+    ['enqueue-right', 'C', 2],
+    ['enqueue-right', 'D', 3],
+  ]);
+  for (const [side, level] of [['root', '1'], ['left', 'current.level + 1'], ['right', 'current.level + 1']]) {
+    const index = sourceLines.findIndex(line => line.lineId === 'enqueue-' + side);
+    assert.deepEqual(sourceLines.slice(index - 1, index + 4).map(line => line.text.trim()), [
+      'if (' + side + ' >= 0) {',
+      'queue[tail].node = ' + side + ';',
+      'queue[tail].level = ' + level + ';',
+      'tail++;',
+      '}',
+    ]);
+  }
   steps[1].variables.queue[0].id = 'changed';
   steps[0].variables.nodes[0].left = null;
   steps.find(({ event }) => event === 'visit').variables.levels[0].push('changed');

@@ -4,7 +4,7 @@
 
 ## 当前交付
 
-二叉树层序遍历已通过 [PR #64](https://github.com/tw1l1ghtcc/datastructure-agent/pull/64) 合并。算法模块复核、全仓 76 项测试及 Open Watcom 四组实际运行通过。该项工作台入口与树动画待联调，其余 9 项算法待交付。下表勾选按完整接入验收记录。
+G 包 10 项算法已实现并通过专项自测。[PR #64](https://github.com/tw1l1ghtcc/datastructure-agent/pull/64) 的层序遍历已合并并接入工作台，前序、中序、后序及后续六项汇总见 [PR #70](https://github.com/tw1l1ghtcc/datastructure-agent/pull/70)。[专项验收与接入说明](../g-validation.md)记录正常、边界及 Open Watcom 原生测试。下表勾选按完整接入验收记录。
 
 ## 主责
 

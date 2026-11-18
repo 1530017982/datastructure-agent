@@ -179,11 +179,11 @@ static int check${caseIndex}(void) {
 }`;
       });
       const main = inputs.map((_, i) => `  if (check${i}()) return ${i + 1};`).join('\n');
-      writeFileSync(join(cwd, 'program.c'), module.SOURCE_LINES.map(line => line.text).join('\n') +
+      writeFileSync(join(cwd, mode + '.c'), module.SOURCE_LINES.map(line => line.text).join('\n') +
         '\n' + cases.join('\n') + '\nint main(void) {\n' + main + '\n  return 0;\n}\n', 'ascii');
-      const compileLog = execFileSync(compiler, ['-za99', '-bt=nt', '-q', '-fo=program.obj', 'program.c'], options);
-      const linkLog = execFileSync(linker, ['-l=nt', '-q', '-fe=program.exe', 'program.obj'], options);
-      execFileSync(join(cwd, 'program.exe'), [], options);
+      const compileLog = execFileSync(compiler, ['-za99', '-bt=nt', '-q', '-fo=' + mode + '.obj', mode + '.c'], options);
+      const linkLog = execFileSync(linker, ['-l=nt', '-q', '-fe=' + mode + '.exe', mode + '.obj'], options);
+      execFileSync(join(cwd, mode + '.exe'), [], options);
       // Keep linker diagnostics visible for reproducibility, including unused-library warnings.
       if (compileLog.trim()) console.log(compileLog.trim());
       if (linkLog.trim()) console.log(linkLog.trim());
