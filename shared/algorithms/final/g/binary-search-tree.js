@@ -1,5 +1,5 @@
 import { MAX_NODES } from './binary-tree-util.js';
-import { createTrace, defineSource } from './g-trace.js';
+import { defineSource } from './g-trace.js';
 
 export { MAX_NODES };
 export const MAX_OPERATIONS = 128;
@@ -55,42 +55,52 @@ const source = defineSource('binary-search-tree', [
 ]);
 export const { sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES } = source;
 
-export function generateBinarySearchTreeSteps(input) {
+export const BINARY_SEARCH_TREE_REPLAY_FORMAT = 'bst-replay-v1';
+
+function freezeTree(root, nodes) {
+  return Object.freeze({ root, nodes: Object.freeze(nodes) });
+}
+
+export function generateBinarySearchTreeReplay(input) {
   const { operations } = input ?? {};
   if (!Array.isArray(operations) || operations.length > MAX_OPERATIONS) {
     throw new TypeError('请输入 operations 数组，最多 128 次操作。');
   }
+  const insertKeys = new Set();
   const ops = Array.from(operations, operation => {
     const { type, key } = operation ?? {};
     if (!['search', 'insert'].includes(type) || !Number.isInteger(key) || key < -2147483648 || key > 2147483647) {
       throw new TypeError('操作必须是 search 或 insert，键必须为 32 位有符号整数。');
     }
+    if (type === 'insert') insertKeys.add(key);
     return { type, key: key === 0 ? 0 : key };
   });
-  const trace = createTrace(source);
-  const nodes = [];
+  if (insertKeys.size > MAX_NODES) throw new TypeError('二叉排序树最多允许 64 个不同的键。');
+
+  let tree = freezeTree(null, []);
+  const treeStates = [tree];
+  const steps = [];
   const results = [];
-  let root = null;
   let operationIndex = null;
   let path = [];
-  const state = (currentNode = null, edge = null) => ({
-    root, nodes, currentNode, edge, operationIndex,
-    operation: operationIndex === null ? null : ops[operationIndex], path, lastResult: results.at(-1) ?? null,
-  });
-  const record = (event, lineId, description, id = null, edge = null) =>
-    trace.record(event, lineId, description, state(id, edge));
-  record('init', 'init', '初始化空的二叉排序树。');
+  function record(event, lineId, description, currentNode = null, edge = null) {
+    steps.push({
+      event, lineId, description, currentNode, edge, operationIndex,
+      treeIndex: treeStates.length - 1, pathLength: path.length, lastResultIndex: results.length - 1,
+    });
+  }
 
+  record('init', 'init', '初始化空的二叉排序树。');
   ops.forEach(({ type, key }, index) => {
     operationIndex = index;
     path = [];
-    let id = root;
+    let id = tree.root;
     let parent = null;
     let side = null;
     const save = (status, node) => results.push({ type, key, status, node, path: [...path] });
     record('operation', 'operation', (type === 'insert' ? '开始插入键 ' : '开始查找键 ') + key + '。', id);
     while (id !== null) {
-      const node = nodes[id];
+      const node = tree.nodes[id];
       path.push(id);
       record('compare', 'compare', '比较 ' + key + ' 和当前节点的键 ' + node.key + '。', id);
       if (key === node.key) {
@@ -109,11 +119,11 @@ export function generateBinarySearchTreeSteps(input) {
       record('missing', 'missing', '到达空链接，查找结束。');
       return;
     }
-    if (nodes.length === MAX_NODES) throw new TypeError('二叉排序树最多允许 64 个不同的键。');
-    id = nodes.length;
-    nodes.push({ id, key, left: null, right: null });
-    if (parent === null) root = id;
-    else nodes[parent][side] = id;
+    id = tree.nodes.length;
+    const nodes = [...tree.nodes, Object.freeze({ id, key, left: null, right: null })];
+    if (parent !== null) nodes[parent] = Object.freeze({ ...nodes[parent], [side]: id });
+    tree = freezeTree(tree.root ?? id, nodes);
+    treeStates.push(tree);
     save('inserted', id);
     record('insert', 'attach', '在空链接处挂接新节点，键为 ' + key + '。', id, { from: parent, to: id, side: side ?? 'root' });
   });
@@ -121,13 +131,49 @@ export function generateBinarySearchTreeSteps(input) {
   const inorder = [];
   function visit(id) {
     if (id === null) return;
-    const node = nodes[id];
+    const node = tree.nodes[id];
     visit(node.left);
     inorder.push(node.key);
     visit(node.right);
   }
-  visit(root);
+  visit(tree.root);
   operationIndex = null;
   path = [];
-  return trace.finish('done', '操作结束，输出当前二叉排序树及其中序序列。', { ...state(), inorder }, { root, nodes, operations: results, inorder });
+  record('done', 'done', '操作结束，输出当前二叉排序树及其中序序列。');
+  return {
+    format: BINARY_SEARCH_TREE_REPLAY_FORMAT, sourceVersion: SOURCE_VERSION, sourceLines: SOURCE_LINES,
+    treeStates, steps, result: { root: tree.root, nodes: tree.nodes, operations: results, inorder },
+  };
+}
+
+export function restoreBinarySearchTreeRun(replay) {
+  const { format, treeStates, steps, result, sourceVersion, sourceLines, ...metadata } = replay;
+  if (format !== BINARY_SEARCH_TREE_REPLAY_FORMAT) throw new TypeError('不支持的二叉排序树回放格式。');
+
+  // Reuse immutable state across steps, including after a JSON round trip.
+  const trees = structuredClone(treeStates).map(({ root, nodes }) =>
+    freezeTree(root, nodes.map(node => Object.freeze(node))));
+  const results = result.operations.map(entry => Object.freeze({ ...entry, path: Object.freeze([...entry.path]) }));
+  const expandedSteps = steps.map((step, stepIndex) => {
+    const { event, lineId, description, currentNode, edge, operationIndex, treeIndex, pathLength, lastResultIndex } = step;
+    const { root, nodes } = trees[treeIndex];
+    const currentOperation = results[operationIndex];
+    const done = event === 'done';
+    const variables = {
+      root, nodes, currentNode, edge: edge && { ...edge }, operationIndex,
+      operation: currentOperation ? { type: currentOperation.type, key: currentOperation.key } : null,
+      path: currentOperation?.path.slice(0, pathLength) ?? [],
+      lastResult: results[lastResultIndex] ?? null,
+    };
+    if (done) variables.inorder = [...result.inorder];
+    return {
+      schemaVersion: '1.0', algorithm: source.algorithm, sourceVersion, stepIndex, event,
+      lineId, description, variables, done, result: done ? structuredClone(result) : null,
+    };
+  });
+  return { ...metadata, steps: expandedSteps, result: structuredClone(result), sourceVersion, sourceLines };
+}
+
+export function generateBinarySearchTreeSteps(input) {
+  return restoreBinarySearchTreeRun(generateBinarySearchTreeReplay(input));
 }

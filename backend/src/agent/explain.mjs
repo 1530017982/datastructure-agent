@@ -88,8 +88,9 @@ async function explain(parsedBody, ctx = {}) {
   const search = arraySearch(run.algorithm);
   const c = cAlgorithm(run.algorithm);
   const tree=run.algorithm==='binary-tree-level-order';
+  const bst = run.algorithm === 'binary-search-tree';
   const uf = run.algorithm === 'union-find';
-  const stepRefs = uf || c || tree
+  const stepRefs = uf || c || tree || bst
     ? [{ runId, stepIndex: idx, algorithm: run.algorithm, event: ev, variables: step.variables }]
     : search
     ? [{ runId, stepIndex: idx, algorithm: run.algorithm, event: ev, target, array: arr, variables: step.variables }]
@@ -130,7 +131,15 @@ async function explain(parsedBody, ctx = {}) {
   const prefix = '[Mock开发模式] ';
   let answer = '';
 
-  if(tree){
+  if (bst) {
+    answer = prefix + '二叉排序树第 ' + (stepNo + 1) + ' 步。' + step.description;
+    const { nodes, path, operation } = step.variables;
+    if (level >= 2 && operation) {
+      const keys = path.map(id => nodes[id].key);
+      answer += ' 当前比较路径（键）：' + (keys.join(' → ') || '空') + '。';
+    }
+    if (level === 3 && steps[idx + 1]) answer += ' 下一步：' + steps[idx + 1].description;
+  } else if(tree){
     answer=prefix+'层序遍历第 '+(stepNo+1)+' 步。'+step.description;
     if(level>=2)answer+=' 当前队列（队首在左）：'+(step.variables.queue.map(entry=>entry.id+'（第'+entry.level+'层）').join('、')||'空')+'。';
     if(level===3 && steps[idx+1])answer+=' 下一步：'+steps[idx+1].description;

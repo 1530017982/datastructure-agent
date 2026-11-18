@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createPlayback } from '../frontend/src/features/playback/index.js';
+import { displayLineId } from '../frontend/src/features/workbench/display-source.js';
+import { handleAgentExplain } from '../backend/src/agent/explain.mjs';
+import { buildPrompt } from '../backend/src/agent/prompt.js';
+import { createRun, runsStore } from '../backend/src/runs/store.js';
 import * as reconstruction from '../shared/algorithms/final/g/binary-tree-reconstruction.js';
 import * as threaded from '../shared/algorithms/final/g/threaded-binary-tree.js';
 import * as conversion from '../shared/algorithms/final/g/tree-forest-conversion.js';
@@ -176,8 +180,110 @@ test('all new G traces preserve source mappings and replay independent snapshots
     player.destroy();
     const last = structuredClone(run.steps.at(-1));
     const collection = Object.values(run.steps[0].variables).find(Array.isArray);
-    collection.push('changed');
+    if (module === bst) assert.throws(() => collection.push('changed'), TypeError);
+    else collection.push('changed');
     assert.deepEqual(run.steps.at(-1), last);
     assert.notEqual(run.steps.at(-1).result, run.result);
+  }
+});
+
+test('BST validates distinct insert keys before building any tree snapshot', () => {
+  const inserts = chain.map(key => ({ type: 'insert', key: Number(key) }));
+  const freeze = Object.freeze;
+  let snapshots = 0;
+  Object.freeze = value => {
+    if (Array.isArray(value?.nodes) && Object.hasOwn(value, 'root')) snapshots++;
+    return freeze(value);
+  };
+  try {
+    assert.throws(() => bst.generateBinarySearchTreeReplay({
+      operations: [...inserts, { type: 'insert', key: 64 }],
+    }), { name: 'TypeError', message: '二叉排序树最多允许 64 个不同的键。' });
+    assert.equal(snapshots, 0);
+
+    const replay = bst.generateBinarySearchTreeReplay({
+      operations: [...inserts, { type: 'insert', key: -0 }, { type: 'search', key: 64 }],
+    });
+    assert.equal(snapshots, 65);
+    assert.equal(replay.treeStates.length, 65);
+    assert.deepEqual(replay.result.operations.slice(-2).map(({ status, node }) => [status, node]),
+      [['duplicate', 0], ['missing', null]]);
+    assert.equal(replay.result.operations.at(-2).key, 0);
+  } finally {
+    Object.freeze = freeze;
+  }
+});
+
+test('compact BST replay keeps 128 operations, works with the player, and binds questions to the same step', async () => {
+  const insertions = chain.map(key => ({ type: 'insert', key: Number(key) }));
+  const misses = chain.map(() => ({ type: 'search', key: 64 }));
+  const input = { operations: [...insertions, ...misses] };
+  const replay = bst.generateBinarySearchTreeReplay(input);
+  assert.equal(replay.treeStates.length, 65);
+  assert.equal(replay.steps.length, 12482);
+  assert.equal(replay.result.operations.length, 128);
+  assert.ok(replay.result.operations.slice(64).every(({ status, path }) => status === 'missing' && path.length === 64));
+  assert.equal(replay.steps.filter(step => step.event === 'missing').length, 64);
+
+  const algorithm = 'binary-search-tree';
+  const serverRun = createRun({ algorithm, input, ...bst.restoreBinarySearchTreeRun(replay) });
+  const wire = JSON.stringify({ ...replay, algorithm, runId: serverRun.runId, input });
+  assert.ok(Buffer.byteLength(wire) < 3797555, 'wire payload including run metadata must fit within 10% of the old replay');
+  const clientRun = bst.restoreBinarySearchTreeRun(JSON.parse(wire));
+  const firstInsert = clientRun.steps.find(step => step.event === 'insert');
+  assert.equal(clientRun.steps[0].variables.nodes.length, 0);
+  assert.equal(firstInsert.variables.nodes[0].right, null);
+
+  let event;
+  const player = createPlayback({
+    runId: clientRun.runId, steps: clientRun.steps,
+    onStepChange: next => { event = next; },
+  });
+  try {
+    player.next();
+    assert.equal(event.step.event, 'operation');
+    player.seek(clientRun.steps.length - 2);
+    assert.equal(event.step.event, 'missing');
+    assert.equal(event.step.stepIndex, 12480);
+    assert.deepEqual(event.step.variables.path, chain.map(Number));
+    assert.equal(event.step.variables.lastResult.status, 'missing');
+    assert.equal(displayLineId(algorithm, event.step.lineId), 'missing');
+
+    player.prev();
+    assert.equal(event.step.event, 'move');
+    assert.equal(event.step.stepIndex, 12479);
+    assert.deepEqual(event.step.variables.edge, { from: 63, to: null, side: 'right' });
+    assert.equal(displayLineId(algorithm, event.step.lineId), 'right');
+    assert.strictEqual(event.step.variables.nodes, clientRun.steps[12480].variables.nodes);
+    assert.ok(Object.isFrozen(event.step.variables.nodes));
+    assert.ok(Object.isFrozen(event.step.variables.nodes[63]));
+
+    const ask = () => handleAgentExplain({
+      runId: event.runId, stepIndex: event.stepIndex, question: '为什么查找失败？', hintLevel: 2,
+    });
+    const moved = await ask();
+    assert.equal(moved.status, 200);
+    assert.equal(moved.body.runId, event.runId);
+    assert.equal(moved.body.stepIndex, event.stepIndex);
+    assert.deepEqual(moved.body.stepRefs[0].variables, event.step.variables);
+    assert.match(moved.body.answer, /沿右链接继续/);
+
+    player.next();
+    const missing = await ask();
+    assert.equal(missing.status, 200);
+    assert.equal(missing.body.runId, serverRun.runId);
+    assert.equal(missing.body.stepIndex, event.stepIndex);
+    assert.deepEqual(missing.body.stepRefs[0].variables, event.step.variables);
+    assert.match(missing.body.answer, /到达空链接，查找结束/);
+    const prompt = buildPrompt(serverRun, serverRun.steps[missing.body.stepIndex], 2, '为什么查找失败？')[1].content;
+    assert.match(prompt, /"event":"missing","lineId":"missing"/);
+    assert.match(prompt, /"activeLineId":"missing"/);
+    assert.match(prompt, /"event":"move","lineId":"right"/);
+    player.reset();
+    assert.equal(event.stepIndex, 0);
+    assert.equal(event.step.lineId, 'init');
+  } finally {
+    player.destroy();
+    runsStore.delete(serverRun.runId);
   }
 });
